@@ -42,6 +42,7 @@ def compute_palette_per_tile(tiles_img, palette_images):
             result.append(best_palette)
     return result
 '''
+'''
 def compute_palette_per_tile(
     tiles_path: str,
     palette_folder: str,
@@ -98,6 +99,77 @@ def compute_palette_per_tile(
     # For each tile pick the palette with the lowest MSE
     best_palette = np.argmin(errors, axis=0).tolist()
     return best_palette
+'''
+
+import numpy as np
+from PIL import Image
+from pathlib import Path
+
+
+def load_jasc_pal(filepath):
+    with open(filepath, "r") as f:
+        lines = [line.strip() for line in f.readlines()]
+
+    if lines[0] != "JASC-PAL" or lines[1] != "0100":
+        raise ValueError(f"{filepath} is not a valid JASC-PAL file")
+
+    count = int(lines[2])
+    colors = [tuple(map(int, line.split())) for line in lines[3:3 + count]]
+    return np.array(colors, dtype=np.int32)  # (num_colors, 3)
+
+
+def compute_palette_per_tile(
+    tiles_path: str,
+    palette_folder: str,
+    tile_size: int = 8,
+    num_palettes: int = 6,
+) -> list[int]:
+    """
+    Same idea as original, but uses JASC-PAL files instead of palette images.
+    """
+
+    ref = np.array(Image.open(tiles_path).convert("RGB"), dtype=np.int32)
+    h, w = ref.shape[:2]
+
+    tiles_y = h // tile_size
+    tiles_x = w // tile_size
+    num_tiles = tiles_y * tiles_x
+
+    folder = Path(palette_folder)
+
+    # Load .pal files
+    palettes = [
+        load_jasc_pal(folder / f"0{i}.pal")
+        for i in range(num_palettes)
+    ]
+    # Each palette: (num_colors, 3)
+
+    errors = np.zeros((num_palettes, num_tiles), dtype=np.float64)
+
+    tile_idx = 0
+    for ty in range(tiles_y):
+        for tx in range(tiles_x):
+            y0, y1 = ty * tile_size, (ty + 1) * tile_size
+            x0, x1 = tx * tile_size, (tx + 1) * tile_size
+
+            ref_tile = ref[y0:y1, x0:x1].reshape(-1, 3)  # (N, 3)
+
+            for p, pal in enumerate(palettes):
+                # Compute distance from each pixel to each palette color
+                # shape: (num_pixels, num_colors)
+                diff = ref_tile[:, None, :] - pal[None, :, :]
+                dist2 = np.sum(diff ** 2, axis=2)
+
+                # For each pixel, take closest palette color
+                min_dist2 = np.min(dist2, axis=1)
+
+                # Mean squared error for tile
+                errors[p, tile_idx] = np.mean(min_dist2)
+
+            tile_idx += 1
+
+    best_palette = np.argmin(errors, axis=0).tolist()
+    return best_palette
 
 def get_tile_lookup(unique_img, palette_list):
     lookup = {}
@@ -140,7 +212,8 @@ def get_tile_lookup(unique_img, palette_list):
 
 def is_metatile_empty(img, x, y):
     """Checks if a 16x16 area is entirely Magenta (255, 0, 255)."""
-    MAGENTA = (255, 0, 255)
+    #MAGENTA = (255, 0, 255)
+    MAGENTA = (248, 0, 248)
     # Convert crop to RGB and get data to check pixels
     patch = img.crop((x, y, x + 16, y + 16)).convert("RGB")
     pixels = list(patch.getdata())
@@ -182,7 +255,44 @@ def build_metatiles_bin(bottom_path, middle_path, top_path, unique_path, palette
     print("Encoding metatiles...")
     for y in range(0, bottom_img.height, METATILE_SIZE):
         for x in range(0, bottom_img.width, METATILE_SIZE):
-            
+            print(is_metatile_empty(bottom_img,x,y))
+            if is_metatile_empty(bottom_img,x,y):
+                # 1. LAYER 1 (Middle) - 4 tiles
+                for ty in [0, 8]:
+                    for tx in [0, 8]:
+                        val = get_tile_value(mid_img, x + tx, y + ty)
+                        bin_data.extend(struct.pack('<H', val))
+                
+                # 2. LAYER 2 (Upper/Top) - 4 tiles
+                for ty in [0, 8]:
+                    for tx in [0, 8]:
+                        val = get_tile_value(top_img, x + tx, y + ty)
+                        bin_data.extend(struct.pack('<H', val))
+            elif is_metatile_empty(mid_img,x,y):
+                # 1. LAYER 1 (Middle) - 4 tiles
+                for ty in [0, 8]:
+                    for tx in [0, 8]:
+                        val = get_tile_value(bottom_img, x + tx, y + ty)
+                        bin_data.extend(struct.pack('<H', val))
+                
+                # 2. LAYER 2 (Upper/Top) - 4 tiles
+                for ty in [0, 8]:
+                    for tx in [0, 8]:
+                        val = get_tile_value(top_img, x + tx, y + ty)
+                        bin_data.extend(struct.pack('<H', val))
+            else:
+                # 1. LAYER 1 (Middle) - 4 tiles
+                for ty in [0, 8]:
+                    for tx in [0, 8]:
+                        val = get_tile_value(bottom_img, x + tx, y + ty)
+                        bin_data.extend(struct.pack('<H', val))
+                
+                # 2. LAYER 2 (Upper/Top) - 4 tiles
+                for ty in [0, 8]:
+                    for tx in [0, 8]:
+                        val = get_tile_value(mid_img, x + tx, y + ty)
+                        bin_data.extend(struct.pack('<H', val))
+            '''
             # 1. LAYER 1 (Bottom) - 4 tiles
             for ty in [0, 8]:
                 for tx in [0, 8]:
@@ -194,6 +304,7 @@ def build_metatiles_bin(bottom_path, middle_path, top_path, unique_path, palette
                 for tx in [0, 8]:
                     val = get_tile_value(top_img, x + tx, y + ty)
                     bin_data.extend(struct.pack('<H', val))
+            '''
 
     with open(output_path, "wb") as f:
         f.write(bin_data)
