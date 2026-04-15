@@ -222,46 +222,7 @@ def export_indexed_image(img, assignment, palettes, out_dir="out"):
         return flat
 
     # ==================================================
-    # 1. FULL COMPOSITE PER PALETTE
-    # ==================================================
-    '''
-    for p_idx, palette in enumerate(palettes):
-
-        composite = Image.new("P", (w, h), 0)
-        composite.putpalette(build_pil_palette(palette))
-
-        for tile_idx, assigned_p in enumerate(assignment):
-
-            tx = (tile_idx % tiles_x) * TILE_SIZE
-            ty = (tile_idx // tiles_x) * TILE_SIZE
-
-            for y in range(TILE_SIZE):
-                for x in range(TILE_SIZE):
-
-                    #raw = to_gba(img.getpixel((tx + x, ty + y)))
-                    r, g, b, a = img.getpixel((tx + x, ty + y))
-
-                    if a == 0:
-                        color_index = 0
-                    else:
-                        raw = to_gba((r, g, b))
-                        color_index = nearest_palette_index(raw, palette)
-
-                    if raw == gba_magenta:
-                        color_index = 0
-                    else:
-                        color_index = nearest_palette_index(raw, palette)
-
-                    composite.putpixel((tx + x, ty + y), color_index)
-
-        composite.save(
-            os.path.join(out_dir, f"tiles_palette_{p_idx}.png"),
-            bits=4
-        )
-        '''
-
-    # ==================================================
-    # 2. BEST-PALETTE COMPOSITE (your original tiles.png)
+    # BEST-PALETTE COMPOSITE (for tiles.png)
     # ==================================================
     def count_real_colors(pal):
         return len([c for i, c in enumerate(pal) if i != 0 and c != (0, 0, 0)])
@@ -418,23 +379,6 @@ def build_metatiles_bin(path, unique_img, palette_list, output_path):
                     for tx in [0, 8]:
                         val = get_tile_value(mid_img, x + tx, y + ty)
                         bin_data.extend(struct.pack('<H', val))
-            '''
-            # 1. LAYER 1 (Bottom) - 4 tiles
-            for ty in [0, 8]:
-                for tx in [0, 8]:
-                    val = get_tile_value(bottom_img, x + tx, y + ty)
-                    bin_data.extend(struct.pack('<H', val))
-            
-            # 2. LAYER 2 (Upper/Top) - 4 tiles
-            for ty in [0, 8]:
-                for tx in [0, 8]:
-                    val = get_tile_value(top_img, x + tx, y + ty)
-                    bin_data.extend(struct.pack('<H', val))
-            '''
-
-    #with open(output_path, "wb") as f:
-    #    f.write(bin_data)
-    #print(f"Success! {output_path} generated.")
 
     full_file_path = os.path.join(output_path, "metatiles.bin")
 
@@ -457,18 +401,7 @@ def main(path, out_dir):
 
     img, tiles, assignment = result
 
-    # === NEW CODE TO EXPORT ASSIGNMENTS ===
-    with open(os.path.join(out_dir, "tile_assignments.txt"), "w") as f:
-        # Option A: A simple space-separated list (good for code reading)
-        f.write(" ".join(map(str, assignment)))
-        
-        # Option B: One per line if you prefer
-        # for a in assignment: f.write(f"{a}\n")
-    
-    print(f"Exported tile palette assignments to {out_dir}/tile_assignments.txt")
-    # ======================================
-
-    img.save(out_dir+"/unique_tiles.png")
+    #img.save(out_dir+"/unique_tiles.png")
     palettes = build_palettes(tiles, assignment)
     export_jasc(palettes, out_dir)
     export_indexed_image(img, assignment, palettes, out_dir)

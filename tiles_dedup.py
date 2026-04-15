@@ -84,14 +84,9 @@ def dedup(input_paths, output_path=None, save=True, verbose=True):
         tiles = split_into_tiles(img)
         all_tiles.extend(tiles)
 
-        if verbose:
-            print(f"{path}: {len(tiles)} tiles")
-
     unique_tiles = collect_unique_tiles(all_tiles)
-
-    if verbose:
-        print(f"Total tiles: {len(all_tiles)}")
-        print(f"Unique tiles (with reflections): {len(unique_tiles)}")
+    
+    print(f"Unique tiles (with reflections): {len(unique_tiles)}")
 
     output_img = create_output_image(unique_tiles)
 
@@ -102,23 +97,3 @@ def dedup(input_paths, output_path=None, save=True, verbose=True):
 
     # ✅ RETURN useful data
     return output_img, unique_tiles
-
-'''
-def main(input_paths, output_path=None, save=True, verbose=True):
-    return dedup(input_paths,output_path,save,verbose)
-
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        input_paths = sys.argv[1:-1]
-        output_path = sys.argv[-1]
-    else:
-        folder = "emerald/"
-        input_paths = [
-            folder + "bottom.png",
-            folder + "middle.png",
-            folder + "top.png"
-        ]
-        output_path = folder + "output.png"
-
-    main(input_paths, output_path)
-'''
