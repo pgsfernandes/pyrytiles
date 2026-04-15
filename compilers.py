@@ -1,0 +1,20 @@
+import os
+from solver import solve
+from pal_tiles import build_palettes, export_jasc, export_indexed_image
+from metatiles import build_metatiles_bin
+
+def compile_primary(path, out_dir, optimal=False):
+    result = solve(path, optimal)
+    if result is None:
+        return
+
+    img, tiles, assignment = result
+
+    os.makedirs(out_dir, exist_ok=True)
+    os.makedirs(out_dir+"/palettes", exist_ok=True)
+
+    palettes = build_palettes(tiles, assignment)
+
+    export_jasc(palettes, out_dir+"/palettes")
+    export_indexed_image(img, assignment, palettes, out_dir)
+    build_metatiles_bin(path, img, assignment, out_dir)
