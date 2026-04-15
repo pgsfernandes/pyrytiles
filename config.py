@@ -7,7 +7,7 @@ MAGENTA = (255, 0, 255)
 GBA_MAGENTA = (248, 0, 248) # 5-bit rounded magenta
 
 # Solver Settings
-MAX_TIME = 100.0
+MAX_TIME = 200.0
 
 BEHAVIOR_MAP = {
     "MB_NORMAL": 0x00,
