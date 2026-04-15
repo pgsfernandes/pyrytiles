@@ -1,0 +1,114 @@
+import os
+import struct
+from PIL import Image, ImageOps
+
+TILE_SIZE = 8
+METATILE_SIZE = 16
+
+def load_palette_images(path, count):
+    palette_images = []
+    for i in range(count):
+        img_path = os.path.join(path, f"tiles_palette_{i}.png")
+        if os.path.exists(img_path):
+            palette_images.append(Image.open(img_path).convert("P"))
+        else:
+            print(f"Warning: Palette image {img_path} not found.")
+    return palette_images
+
+def compute_palette_per_tile(tiles_img, palette_images):
+    w, h = tiles_img.size
+    tiles_x = w // TILE_SIZE
+    tiles_y = h // TILE_SIZE
+    result = []
+    for ty in range(tiles_y):
+        for tx in range(tiles_x):
+            best_palette, best_score = 0, float("inf")
+            for p_idx, pal_img in enumerate(palette_images):
+                score = 0
+                for y in range(TILE_SIZE):
+                    for x in range(TILE_SIZE):
+                        rgba = tiles_img.getpixel((tx * TILE_SIZE + x, ty * TILE_SIZE + y))
+                        if rgba[3] < 128: continue 
+                        pal_pixel_idx = pal_img.getpixel((tx * TILE_SIZE + x, ty * TILE_SIZE + y))
+                        if pal_pixel_idx == 0: continue
+                        palette_data = pal_img.getpalette()
+                        pr, pg, pb = palette_data[pal_pixel_idx*3 : pal_pixel_idx*3 + 3]
+                        score += (rgba[0] - pr)**2 + (rgba[1] - pg)**2 + (rgba[2] - pb)**2
+                if score < best_score:
+                    best_score, best_palette = score, p_idx
+            result.append(best_palette)
+    return result
+
+def get_tile_lookup(unique_img, palette_list):
+    lookup = {}
+    num_tiles = unique_img.width // TILE_SIZE
+    for i in range(num_tiles):
+        base_tile = unique_img.crop((i * TILE_SIZE, 0, i * TILE_SIZE + TILE_SIZE, TILE_SIZE))
+        pal_id = palette_list[i]
+        # Check all 4 orientations
+        for h_flip in [0, 1]:
+            for v_flip in [0, 1]:
+                t = base_tile
+                if h_flip: t = ImageOps.mirror(t)
+                if v_flip: t = ImageOps.flip(t)
+                pixels = tuple(t.getdata())
+                if pixels not in lookup:
+                    lookup[pixels] = (i, pal_id, h_flip, v_flip)
+    return lookup
+
+def build_metatiles_bin(bottom_path, middle_path, top_path, unique_path, palette_folder, output_path):
+    # Load and prep images
+    bottom_img = Image.open(bottom_path).convert("RGBA")
+    mid_img = Image.open(middle_path).convert("RGBA")
+    top_img = Image.open(top_path).convert("RGBA")
+    unique_img = Image.open(unique_path).convert("RGBA")
+    
+    # Merge Middle and Top into a single "Upper" layer for Pokeemerald
+    upper_img = Image.alpha_composite(mid_img, top_img)
+    
+    pal_imgs = load_palette_images(palette_folder, 6)
+    palette_list = compute_palette_per_tile(unique_img, pal_imgs)
+    tile_lookup = get_tile_lookup(unique_img, palette_list)
+    
+    bin_data = bytearray()
+
+    def get_tile_value(img, tx, ty):
+        quad = img.crop((tx, ty, tx + 8, ty + 8))
+        pix = tuple(quad.getdata())
+        # Check if tile is completely transparent
+        if all(p[3] < 10 for p in pix):
+            return 0
+        if pix in tile_lookup:
+            idx, pal, h, v = tile_lookup[pix]
+            return (pal << 12) | (v << 11) | (h << 10) | (idx & 0x3FF)
+        return 0
+
+    print("Encoding metatiles...")
+    for y in range(0, bottom_img.height, METATILE_SIZE):
+        for x in range(0, bottom_img.width, METATILE_SIZE):
+            
+            # 1. LAYER 1 (Bottom) - 4 tiles
+            for ty in [0, 8]:
+                for tx in [0, 8]:
+                    val = get_tile_value(bottom_img, x + tx, y + ty)
+                    bin_data.extend(struct.pack('<H', val))
+            
+            # 2. LAYER 2 (Upper/Top) - 4 tiles
+            for ty in [0, 8]:
+                for tx in [0, 8]:
+                    val = get_tile_value(upper_img, x + tx, y + ty)
+                    bin_data.extend(struct.pack('<H', val))
+
+    with open(output_path, "wb") as f:
+        f.write(bin_data)
+    print(f"Success! {output_path} generated.")
+
+if __name__ == "__main__":
+    build_metatiles_bin(
+        bottom_path="emerald/bottom.png",
+        middle_path="emerald/middle.png",
+        top_path="emerald/top.png",
+        unique_path="emerald_out/unique_tiles.png",
+        palette_folder="emerald_out",
+        output_path="emerald_out/metatiles.bin"
+    )

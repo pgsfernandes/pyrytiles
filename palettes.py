@@ -19,7 +19,7 @@ MAGENTA = (255, 0, 255)
 # GBA COLOR QUANTIZATION
 # ========================
 def to_gba(c):
-    r, g, b = c
+    r, g, b = c[:3]  # ignore alpha if present
     return ((r // 8) * 8, (g // 8) * 8, (b // 8) * 8)
 
 
@@ -47,9 +47,10 @@ def load_tiles(path):
         path + "/middle.png",
         path + "/top.png"
     ]
-    output_path = path + "unique_tiles.png"
+    output_path = path + "/unique_tiles.png"
     img, tilesunique = tiles_dedup.dedup(input_paths,output_path,False)
-    img = img.convert("RGB")
+    #img.save("emerald_out/unique_tiles_new.png")
+    img = img.convert("RGBA")
     w, h = img.size
 
     tiles = []
@@ -60,7 +61,13 @@ def load_tiles(path):
 
             for y in range(TILE_SIZE):
                 for x in range(TILE_SIZE):
-                    c = to_gba(img.getpixel((tx + x, ty + y)))
+                    #c = to_gba(img.getpixel((tx + x, ty + y)))
+                    r, g, b, a = img.getpixel((tx + x, ty + y))
+
+                    if a == 0:
+                        continue  # fully transparent → ignore
+                    c = to_gba((r, g, b))
+
                     if c != to_gba(MAGENTA):
                         colors.add(c)
 
@@ -133,10 +140,6 @@ def solve(path,max_time):
         print("No solution found within time limit — problem may still be feasible")
         return None
 
-    #if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-    #    print("No solution found")
-    #    return None
-
     assignment = []
 
     for t in range(n):
@@ -197,63 +200,6 @@ def export_jasc(palettes, out_dir="out"):
 # ========================
 # EXPORT INDEXED IMAGE
 # ========================
-'''
-def export_indexed_image(img, assignment, palettes, out_dir="out"):
-    os.makedirs(out_dir, exist_ok=True)
-
-    w, h = img.size
-    gba_magenta = to_gba(MAGENTA)
-    tiles_x = w // TILE_SIZE
-
-    def build_pil_palette(pal):
-        flat = []
-        for r, g, b in pal:
-            flat.extend([r, g, b])
-
-        while len(flat) < 256 * 3:
-            flat.extend([0, 0, 0])
-
-        return flat
-
-    def count_real_colors(pal):
-        # ignore index 0 (magenta) and padding (0,0,0)
-        return len([
-            c for i, c in enumerate(pal)
-            if i != 0 and c != (0, 0, 0)
-        ])
-
-    # ✅ pick palette with most real colors
-    best_idx, best_palette = max(
-        enumerate(palettes),
-        key=lambda x: count_real_colors(x[1])
-    )
-
-    print(f"Using palette {best_idx} with {count_real_colors(best_palette)} colors")
-
-    # --- single indexed output ---
-    out = Image.new("P", (w, h), 0)
-    out.putpalette(build_pil_palette(best_palette))
-
-    for tile_idx, _ in enumerate(assignment):
-        tx = (tile_idx % tiles_x) * TILE_SIZE
-        ty = (tile_idx // tiles_x) * TILE_SIZE
-
-        for y in range(TILE_SIZE):
-            for x in range(TILE_SIZE):
-                raw = to_gba(img.getpixel((tx + x, ty + y)))
-
-                if raw == gba_magenta:
-                    color_index = 0
-                else:
-                    color_index = nearest_palette_index(raw, best_palette)
-
-                out.putpixel((tx + x, ty + y), color_index)
-
-    out.save(os.path.join(out_dir, "indexed_best_palette.png"))
-
-    print(f"Exported indexed image using best palette → {out_dir}")
-'''
-
 
 def export_indexed_image(img, assignment, palettes, out_dir="out"):
     os.makedirs(out_dir, exist_ok=True)
@@ -288,7 +234,14 @@ def export_indexed_image(img, assignment, palettes, out_dir="out"):
             for y in range(TILE_SIZE):
                 for x in range(TILE_SIZE):
 
-                    raw = to_gba(img.getpixel((tx + x, ty + y)))
+                    #raw = to_gba(img.getpixel((tx + x, ty + y)))
+                    r, g, b, a = img.getpixel((tx + x, ty + y))
+
+                    if a == 0:
+                        color_index = 0
+                    else:
+                        raw = to_gba((r, g, b))
+                        color_index = nearest_palette_index(raw, palette)
 
                     if raw == gba_magenta:
                         color_index = 0
@@ -342,65 +295,22 @@ def export_indexed_image(img, assignment, palettes, out_dir="out"):
 
     print(f"Exported {len(palettes)} palette composites + best composite → {out_dir}")
 
-
-'''
-def export_indexed_image(img, assignment, palettes, out_dir="out"):
-    os.makedirs(out_dir, exist_ok=True)
-
-    w, h = img.size
-    gba_magenta = to_gba(MAGENTA)
-    tiles_x = w // TILE_SIZE
-
-    def build_pil_palette(pal):
-        flat = []
-        for r, g, b in pal:
-            flat.extend([r, g, b])
-
-        while len(flat) < 256 * 3:
-            flat.extend([0, 0, 0])
-
-        return flat
-
-    # ✅ Always use palette 0
-    palette0 = palettes[0]
-
-    out = Image.new("P", (w, h), 0)
-    out.putpalette(build_pil_palette(palette0))
-
-    for tile_idx, _ in enumerate(assignment):
-        tx = (tile_idx % tiles_x) * TILE_SIZE
-        ty = (tile_idx // tiles_x) * TILE_SIZE
-
-        for y in range(TILE_SIZE):
-            for x in range(TILE_SIZE):
-                raw = to_gba(img.getpixel((tx + x, ty + y)))
-
-                if raw == gba_magenta:
-                    color_index = 0
-                else:
-                    color_index = nearest_palette_index(raw, palette0)
-
-                out.putpixel((tx + x, ty + y), color_index)
-
-    out.save(os.path.join(out_dir, "indexed_palette0.png"))
-
-    print(f"Exported indexed image (palette 0 only) → {out_dir}")
-'''
 # ========================
 # MAIN
 # ========================
-def main(path):
-    max_time = 120.0
+def main(path,out_dir):
+    max_time = 1.0
     result = solve(path, max_time)
-    out_dir = "emerald_out"
 
-    # ✅ create directory if it doesn't exist
+    # create directory if it doesn't exist
     os.makedirs(out_dir, exist_ok=True)
 
     if result is None:
         return
 
     img, tiles, assignment = result
+
+    img.save(out_dir+"/unique_tiles.png")
 
     palettes = build_palettes(tiles, assignment)
 
@@ -409,4 +319,4 @@ def main(path):
 
 
 if __name__ == "__main__":
-    main("emerald")
+    main("emerald","emerald_out")
