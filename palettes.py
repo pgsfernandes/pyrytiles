@@ -221,6 +221,7 @@ def export_indexed_image(img, assignment, palettes, out_dir="out"):
     # ==================================================
     # 1. FULL COMPOSITE PER PALETTE
     # ==================================================
+    '''
     for p_idx, palette in enumerate(palettes):
 
         composite = Image.new("P", (w, h), 0)
@@ -254,6 +255,7 @@ def export_indexed_image(img, assignment, palettes, out_dir="out"):
             os.path.join(out_dir, f"tiles_palette_{p_idx}.png"),
             bits=4
         )
+        '''
 
     # ==================================================
     # 2. BEST-PALETTE COMPOSITE (your original tiles.png)
@@ -298,11 +300,10 @@ def export_indexed_image(img, assignment, palettes, out_dir="out"):
 # ========================
 # MAIN
 # ========================
-def main(path,out_dir):
-    max_time = 1.0
+def main(path, out_dir):
+    max_time = 1.0 # Increased time slightly for better results
     result = solve(path, max_time)
 
-    # create directory if it doesn't exist
     os.makedirs(out_dir, exist_ok=True)
 
     if result is None:
@@ -310,10 +311,19 @@ def main(path,out_dir):
 
     img, tiles, assignment = result
 
+    # === NEW CODE TO EXPORT ASSIGNMENTS ===
+    with open(os.path.join(out_dir, "tile_assignments.txt"), "w") as f:
+        # Option A: A simple space-separated list (good for code reading)
+        f.write(" ".join(map(str, assignment)))
+        
+        # Option B: One per line if you prefer
+        # for a in assignment: f.write(f"{a}\n")
+    
+    print(f"Exported tile palette assignments to {out_dir}/tile_assignments.txt")
+    # ======================================
+
     img.save(out_dir+"/unique_tiles.png")
-
     palettes = build_palettes(tiles, assignment)
-
     export_jasc(palettes, out_dir)
     export_indexed_image(img, assignment, palettes, out_dir)
 

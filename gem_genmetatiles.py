@@ -17,6 +17,27 @@ def load_palette_images(path, count):
             print(f"Warning: Palette image {img_path} not found.")
     return palette_images
 
+def apply_gba_quantization(img):
+    """
+    Takes a PIL Image (RGBA) and returns a new image
+    with GBA-style color quantization applied.
+    """
+    img = img.convert("RGBA")  # ensure correct mode
+    
+    def to_gba(c):
+        r, g, b, a = c
+        return ((r // 8) * 8,
+                (g // 8) * 8,
+                (b // 8) * 8,
+                a)
+
+    pixels = list(img.getdata())
+    gba_pixels = [to_gba(p) for p in pixels]
+
+    new_img = Image.new("RGBA", img.size)
+    new_img.putdata(gba_pixels)
+    
+    return new_img
 '''
 def compute_palette_per_tile(tiles_img, palette_images):
     w, h = tiles_img.size
@@ -116,8 +137,7 @@ def load_jasc_pal(filepath):
     count = int(lines[2])
     colors = [tuple(map(int, line.split())) for line in lines[3:3 + count]]
     return np.array(colors, dtype=np.int32)  # (num_colors, 3)
-
-
+'''
 def compute_palette_per_tile(
     tiles_path: str,
     palette_folder: str,
@@ -170,6 +190,58 @@ def compute_palette_per_tile(
 
     best_palette = np.argmin(errors, axis=0).tolist()
     return best_palette
+'''
+def to_gba_np(arr):
+    """Vectorized GBA color quantization for numpy arrays."""
+    # (arr // 8) * 8 clears the lower 3 bits, matching your function logic
+    return (arr // 8) * 8
+
+def compute_palette_per_tile(
+    tiles_path: str,
+    palette_folder: str,
+    tile_size: int = 8,
+    num_palettes: int = 6,
+) -> list[int]:
+    
+    # 1. Load and immediately quantize the source image
+    raw_img = np.array(Image.open(tiles_path).convert("RGB"), dtype=np.uint8)
+    img = to_gba_np(raw_img)
+    
+    h, w = img.shape[:2]
+    tiles_y, tiles_x = h // tile_size, w // tile_size
+    folder = Path(palette_folder)
+
+    # 2. Load and quantize palettes
+    palette_sets = []
+    for i in range(num_palettes):
+        pal_path = folder / f"{i:02d}.pal"
+        # Quantize the palette colors so they match the quantized image colors
+        pal = load_jasc_pal(pal_path).astype(np.uint8)
+        quantized_pal = to_gba_np(pal)
+        
+        palette_sets.append(set(map(tuple, quantized_pal)))
+
+    results = []
+
+    # 3. Process tiles
+    for ty in range(tiles_y):
+        for tx in range(tiles_x):
+            y0, x0 = ty * tile_size, tx * tile_size
+            tile = img[y0 : y0 + tile_size, x0 : x0 + tile_size]
+
+            # Get unique quantized colors
+            unique_colors_np = np.unique(tile.reshape(-1, 3), axis=0)
+            unique_colors_set = set(map(tuple, unique_colors_np))
+
+            match_index = -1 
+            for i, pset in enumerate(palette_sets):
+                if unique_colors_set.issubset(pset):
+                    match_index = i
+                    break
+
+            results.append(match_index)
+    print(results)
+    return results
 
 def get_tile_lookup(unique_img, palette_list):
     lookup = {}
@@ -230,8 +302,6 @@ def build_metatiles_bin(bottom_path, middle_path, top_path, unique_path, palette
     #palette_list = compute_palette_per_tile(unique_img, pal_imgs)
     palette_list = compute_palette_per_tile(unique_path, palette_folder)
     tile_lookup = get_tile_lookup(unique_img, palette_list)
-
-    print(palette_list)
     
     bin_data = bytearray()
 
@@ -255,7 +325,6 @@ def build_metatiles_bin(bottom_path, middle_path, top_path, unique_path, palette
     print("Encoding metatiles...")
     for y in range(0, bottom_img.height, METATILE_SIZE):
         for x in range(0, bottom_img.width, METATILE_SIZE):
-            print(is_metatile_empty(bottom_img,x,y))
             if is_metatile_empty(bottom_img,x,y):
                 # 1. LAYER 1 (Middle) - 4 tiles
                 for ty in [0, 8]:
