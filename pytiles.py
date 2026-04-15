@@ -19,6 +19,8 @@ MAX_COLORS = 15
 
 MAGENTA = (255, 0, 255)
 
+MAX_TIME = 100.0
+
 
 # ========================
 # COLOR UTILS
@@ -74,7 +76,15 @@ def load_tiles(path):
 # ========================
 # SOLVER
 # ========================
-def solve(path, max_time):
+class FirstSolutionSelector(cp_model.CpSolverSolutionCallback):
+    def __init__(self):
+        cp_model.CpSolverSolutionCallback.__init__(self)
+
+    def on_solution_callback(self):
+        # This is called the instant a feasible solution is found
+        self.StopSearch()
+
+def solve(path, optimal):
     img, tiles = load_tiles(path)
     n = len(tiles)
 
@@ -112,10 +122,13 @@ def solve(path, max_time):
     model.Minimize(sum(used.values()))
 
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = max_time
-
+    solver.parameters.max_time_in_seconds = MAX_TIME
     print("Looking for a solution...")
-    status = solver.Solve(model)
+    if optimal:
+        status = solver.Solve(model)
+    else:
+        solution_callback = FirstSolutionSelector()
+        status = solver.Solve(model, solution_callback)
 
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         print("No solution found")
@@ -534,7 +547,7 @@ def build_metatiles_bin(path, unique_img, palette_list, out_dir):
     data = bytearray()       
     attr_data = bytearray()  
 
-    print(f"Encoding {len(attributes_list)} metatiles and attributes...")
+    print(f"Generating metatiles and attributes...")
 
     metatile_index = 0
     for y in range(0, bottom.height, METATILE_SIZE):
@@ -585,8 +598,8 @@ def build_metatiles_bin(path, unique_img, palette_list, out_dir):
 # ========================
 # MAIN
 # ========================
-def compile_primary(path, out_dir, time):
-    result = solve(path, max_time=time)
+def compile_primary(path, out_dir, optimal=False):
+    result = solve(path, optimal)
     if result is None:
         return
 
@@ -606,4 +619,4 @@ def compile_primary(path, out_dir, time):
 
 input_dir = os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/emerald")
 out_dir = os.path.expandvars("$HOME/Documents/pkmndecomps/pokeemerald-expansion/data/tilesets/primary/test_primary")
-compile_primary(input_dir,out_dir,1.0)
+compile_primary(input_dir,out_dir,True)
