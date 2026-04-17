@@ -12,3 +12,11 @@ def nearest_palette_index(color, palette):
         if dist < best_dist:
             best_idx, best_dist = i, dist
     return best_idx
+
+def from_gba_value(val):
+    """
+    Reverts (val // 8) * 8 by stretching the 5-bit result 
+    back to a full 8-bit 0-255 range.
+    """
+    five_bit = val // 8
+    return (five_bit * 255) // 31

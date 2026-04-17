@@ -18,3 +18,7 @@ def compile_primary(path, out_dir, optimal=False):
     export_jasc(palettes, out_dir+"/palettes")
     export_indexed_image(img, assignment, palettes, out_dir)
     build_metatiles_bin(path, img, assignment, out_dir)
+
+def compile_secondary(path, out_dir, path_primary=None, optimal=False):
+    if path_primary is None:
+        compile_primary(path,out_dir,optimal)

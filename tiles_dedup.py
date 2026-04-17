@@ -1,7 +1,7 @@
 from PIL import Image, ImageOps
 import sys
+from config import TILE_SIZE
 
-TILE_SIZE = 8
 OUTPUT_WIDTH = 128
 OUTPUT_HEIGHT = 256
 
@@ -95,5 +95,4 @@ def dedup(input_paths, output_path=None, save=True, verbose=True):
         if verbose:
             print(f"Saved output to {output_path}")
 
-    # ✅ RETURN useful data
     return output_img, unique_tiles
