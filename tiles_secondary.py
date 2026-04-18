@@ -37,12 +37,12 @@ def collect_unique_tiles(all_tiles):
     unique_tiles = []
     
     # 1. Prepare the mandatory magenta tile and its key
-    magenta_tile = create_magenta_tile()
-    magenta_key = canonical_tile_key(magenta_tile)
+    #magenta_tile = create_magenta_tile()
+    #magenta_key = canonical_tile_key(magenta_tile)
     
     # Pre-populate seen with the magenta key so we don't add it again later
-    seen.add(magenta_key)
-    unique_tiles.append(magenta_tile)
+    #seen.add(magenta_key)
+    #unique_tiles.append(magenta_tile)
 
     for tile in all_tiles:
         key = canonical_tile_key(tile)
@@ -145,7 +145,8 @@ def create_tileset_library(tiles_png_path, palettes):
         version.putpalette(pal_data)
         rgba = version.convert("RGBA")
         new_pixels = [
-			(r, g, b, 255) if idx == 0 else (r, g, b, a)
+			#(r, g, b, 255) if idx == 0 else (r, g, b, a)
+			(r, g, b, a)
 			for idx, (r, g, b, a) in zip(base_img.getdata(), rgba.getdata())
 		]
 
