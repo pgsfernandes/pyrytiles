@@ -119,7 +119,7 @@ def load_jasc_pal_as_list(filepath):
     # Ensure the palette list is exactly 768 entries (256 colors * 3 channels)
     # for PIL's 'P' mode requirement.
     while len(colors) < 768:
-        colors.extend([0, 0, 0])
+        colors.extend([255, 0, 255])
         
     return colors[:768]
 
@@ -128,7 +128,10 @@ def load_palettes(path):
     for pf in glob.glob(os.path.join(path, "palettes", "*.pal")):
         try:
             pal_id = int(os.path.basename(pf).split('.')[0])
-            pals[pal_id] = load_jasc_pal_as_list(pf)
+
+            if 0 <= pal_id <= 5:   # ← filter here
+                pals[pal_id] = load_jasc_pal_as_list(pf)
+
         except ValueError:
             continue
     return pals
