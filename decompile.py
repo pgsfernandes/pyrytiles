@@ -10,261 +10,257 @@ from config import BEHAVIOR_MAP, TILE_SIZE, METATILE_SIZE
 # ==========================================
 ORIGINAL_CANVAS_WIDTH = 128 
 BEHAVIOR_MAP_REV = {v: k for k, v in BEHAVIOR_MAP.items()}
+SECONDARY_TILE_OFFSET = 512
 
 # ==========================================
 # PALETTE HANDLING
 # ==========================================
 def load_jasc_pal_as_list(filepath):
-    """Returns a flattened list [R, G, B...] forcing index 0 to GBA Magenta."""
     colors = []
     with open(filepath, 'r') as f:
-        lines = f.readlines()
-        color_entries = lines[3:]
-        
-        for i, line in enumerate(color_entries):
+        lines = f.readlines()[3:]
+        for i, line in enumerate(lines):
             parts = line.split()
             if len(parts) >= 3:
                 if i == 0:
-                    # Force first color to GBA Magenta
                     colors.extend([248, 0, 248])
                 else:
-                    # Use raw colors from file
                     colors.extend([int(parts[0]), int(parts[1]), int(parts[2])])
-                    
     while len(colors) < 768:
         colors.extend([0, 0, 0])
     return colors[:768]
 
-def get_paletted_tilesets(tiles_png_path, palettes_dir):
-    """Creates a dictionary of {pal_id: RGBA_image} with transparency applied."""
-    base_img = Image.open(tiles_png_path).convert("P")
-    tileset_versions = {}
-    
-    pal_files = glob.glob(os.path.join(palettes_dir, "*.pal"))
-    for pf in pal_files:
+def load_palettes(path):
+    pals = {}
+    for pf in glob.glob(os.path.join(path, "palettes", "*.pal")):
         try:
             pal_id = int(os.path.basename(pf).split('.')[0])
-            pal_data = load_jasc_pal_as_list(pf)
-            
-            # Apply palette to the indexed image
-            version = base_img.copy()
-            version.putpalette(pal_data)
-            
-            # Convert to RGBA
-            rgba_version = version.convert("RGBA")
-            
-            # Process pixels to make GBA Magenta (248, 0, 248) transparent
-            pixels = rgba_version.getdata()
-            new_pixels = []
-            for p in pixels:
-                if p[0] == 248 and p[1] == 0 and p[2] == 248:
-                    new_pixels.append((248, 0, 248, 0)) # Transparent
-                else:
-                    new_pixels.append(p)
-            
-            rgba_version.putdata(new_pixels)
-            tileset_versions[pal_id] = rgba_version
-        except (ValueError, IndexError):
+            pals[pal_id] = load_jasc_pal_as_list(pf)
+        except ValueError:
             continue
-            
-    return tileset_versions
+    return pals
+
+def merge_palettes(primary, secondary=None):
+    if not secondary:
+        return primary
+
+    merged = primary.copy()
+    for pal_id, pal_data in secondary.items():
+        if pal_id >= 6 or pal_id not in merged:
+            merged[pal_id] = pal_data
+    return merged
 
 # ==========================================
-# CORE DECOMPILER
+# TILESET LIBRARY
 # ==========================================
-def decompile_primary(folder_path, out_dir):
-    if not os.path.exists(out_dir): os.makedirs(out_dir)
+def create_tileset_library(tiles_png_path, palettes):
+    if not os.path.exists(tiles_png_path):
+        return {}
 
-    # 1. Pre-generate all tileset versions
-    print("Pre-generating paletted tilesets...")
-    tileset_versions = get_paletted_tilesets(
-        os.path.join(folder_path, "tiles.png"),
-        os.path.join(folder_path, "palettes")
-    )
+    base_img = Image.open(tiles_png_path).convert("P")
+    library = {}
 
-    # 2. Read Binary Data
-    with open(os.path.join(folder_path, "metatiles.bin"), "rb") as f:
+    for pal_id, pal_data in palettes.items():
+        version = base_img.copy()
+        version.putpalette(pal_data)
+        rgba = version.convert("RGBA")
+
+        indices = list(base_img.getdata())
+        pixels = list(rgba.getdata())
+
+        new_pixels = [
+            (r, g, b, 0) if indices[i] == 0 else (r, g, b, a)
+            for i, (r, g, b, a) in enumerate(pixels)
+        ]
+
+        rgba.putdata(new_pixels)
+        library[pal_id] = rgba
+
+    return library
+
+def gba_to_8bit_channel(c):
+    """Convert 0–248 stepped GBA channel back to full 0–255."""
+    v = c >> 3          # back to 5-bit (0–31)
+    return (v << 3) | (v >> 2)
+
+def restore_gba_image(img):
+    """Apply GBA color expansion to an RGBA image."""
+    pixels = list(img.getdata())
+    new_pixels = []
+
+    for r, g, b, a in pixels:
+        if a == 0:
+            new_pixels.append((r, g, b, a))
+        else:
+            new_pixels.append((
+                gba_to_8bit_channel(r),
+                gba_to_8bit_channel(g),
+                gba_to_8bit_channel(b),
+                a
+            ))
+
+    img.putdata(new_pixels)
+    return img
+
+# ==========================================
+# UNIFIED DECOMPILER
+# ==========================================
+def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output"):
+    if not primary_path and not secondary_path:
+        raise ValueError("You must provide at least one tileset path.")
+
+    os.makedirs(out_dir, exist_ok=True)
+
+    # ==========================================
+    # MODE DETECTION
+    # ==========================================
+    has_primary = primary_path is not None
+    has_secondary = secondary_path is not None
+
+    print("Loading palettes...")
+
+    p_pals = load_palettes(primary_path) if has_primary else {}
+    s_pals = load_palettes(secondary_path) if has_secondary else {}
+
+    # Palette logic depends on mode
+    if has_primary and has_secondary:
+        # true secondary mode (engine accurate)
+        merged_pals = merge_palettes(p_pals, s_pals)
+    elif has_secondary:
+        # standalone secondary → just use its palettes
+        merged_pals = s_pals
+    else:
+        # primary only
+        merged_pals = p_pals
+
+    print("Generating tileset libraries...")
+
+    primary_lib = None
+    secondary_lib = None
+
+    if has_primary:
+        primary_lib = create_tileset_library(
+            os.path.join(primary_path, "tiles.png"),
+            merged_pals
+        )
+
+    if has_secondary:
+        secondary_lib = create_tileset_library(
+            os.path.join(secondary_path, "tiles.png"),
+            merged_pals
+        )
+
+    # Which binary set to read
+    bin_path = secondary_path if has_secondary else primary_path
+
+    with open(os.path.join(bin_path, "metatiles.bin"), "rb") as f:
         metatile_pixel_data = f.read()
-    with open(os.path.join(folder_path, "metatile_attributes.bin"), "rb") as f:
+    with open(os.path.join(bin_path, "metatile_attributes.bin"), "rb") as f:
         attr_data = f.read()
 
     num_metatiles = len(attr_data) // 2
-    mt_width_count = ORIGINAL_CANVAS_WIDTH // METATILE_SIZE
-    mt_height_count = (num_metatiles + mt_width_count - 1) // mt_width_count
-    
-    img_w, img_h = mt_width_count * METATILE_SIZE, mt_height_count * METATILE_SIZE
-    
-    # Transparency logic: grab color 0 from palette 0 as the 'magenta' transparent key
-    transparent_bg = (248, 0, 248, 255)
-    
-    layers = {
-        "bottom": Image.new("RGBA", (img_w, img_h), transparent_bg),
-        "middle": Image.new("RGBA", (img_w, img_h), transparent_bg),
-        "top":    Image.new("RGBA", (img_w, img_h), transparent_bg)
-    }
-    
-    csv_rows = [["id", "behavior"]]
+    mt_per_row = ORIGINAL_CANVAS_WIDTH // METATILE_SIZE
+    img_w = ORIGINAL_CANVAS_WIDTH
+    img_h = ((num_metatiles + mt_per_row - 1) // mt_per_row) * METATILE_SIZE
 
-    # 3. Process Metatiles
-    for i in range(num_metatiles):
-        attr_val = struct.unpack_from("<H", attr_data, i * 2)[0]
-        layer_logic = (attr_val & 0xF000)
-        behavior_id = (attr_val & 0x00FF)
-        csv_rows.append([i, BEHAVIOR_MAP_REV.get(behavior_id, f"0x{behavior_id:02X}")])
-
-        # Layer determination logic
-        if layer_logic == 0x0000: target_layers = ["middle", "top"]
-        elif layer_logic == 0x2000: target_layers = ["bottom", "top"]
-        else: target_layers = ["bottom", "middle"]
-
-        mx, my = (i % mt_width_count) * METATILE_SIZE, (i // mt_width_count) * METATILE_SIZE
-
-        for layer_idx, layer_name in enumerate(target_layers):
-            base_offset = (i * 8 + layer_idx * 4) * 2
-            
-            for t in range(4):
-                tile_val = struct.unpack_from("<H", metatile_pixel_data, base_offset + (t * 2))[0]
-                
-                idx = tile_val & 0x3FF
-                h_flip = (tile_val >> 10) & 1
-                v_flip = (tile_val >> 11) & 1
-                pal_id = (tile_val >> 12) & 0xF
-                
-                if pal_id in tileset_versions:
-                    source_img = tileset_versions[pal_id]
-                    
-                    # Calculate tile crop from the specific paletted tileset
-                    tx = (idx % (source_img.width // TILE_SIZE)) * TILE_SIZE
-                    ty = (idx // (source_img.width // TILE_SIZE)) * TILE_SIZE
-                    
-                    tile_img = source_img.crop((tx, ty, tx + TILE_SIZE, ty + TILE_SIZE))
-                    
-                    if h_flip: tile_img = ImageOps.mirror(tile_img)
-                    if v_flip: tile_img = ImageOps.flip(tile_img)
-                    
-                    dx, dy = (t % 2) * 8, (t // 2) * 8
-                    # We use the tile as its own mask to preserve transparency
-                    layers[layer_name].paste(tile_img, (mx + dx, my + dy), tile_img)
-
-    # 4. Save
-    for name, img in layers.items():
-        img.save(os.path.join(out_dir, f"{name}.png"))
-    
-    with open(os.path.join(out_dir, "attributes.csv"), "w", newline='') as f:
-        csv.writer(f).writerows(csv_rows)
-
-    print(f"Successfully decompiled to {out_dir}")
-
-
-def decompile_secondary(primary_path, secondary_path, out_dir):
-    """
-    Decompiles a secondary tileset, pulling primary tiles for indices < 512
-    and enforcing a minimum output size of 128x1024.
-    """
-    if not os.path.exists(out_dir): os.makedirs(out_dir)
-
-    # 1. Load both tileset libraries
-    print("Loading Primary and Secondary tilesets...")
-    primary_paletted = get_paletted_tilesets(
-        os.path.join(primary_path, "tiles.png"),
-        os.path.join(primary_path, "palettes")
-    )
-    secondary_paletted = get_paletted_tilesets(
-        os.path.join(secondary_path, "tiles.png"),
-        os.path.join(secondary_path, "palettes")
-    )
-
-    # Merge palettes (Secondary overrides Primary if IDs overlap)
-    combined_pals = {**primary_paletted, **secondary_paletted}
-
-    # 2. Read Secondary Binaries
-    with open(os.path.join(secondary_path, "metatiles.bin"), "rb") as f:
-        metatile_pixel_data = f.read()
-    with open(os.path.join(secondary_path, "metatile_attributes.bin"), "rb") as f:
-        attr_data = f.read()
-
-    num_metatiles = len(attr_data) // 2
-    
-    # 3. Calculate Canvas Size (Force at least 128x1024)
-    MIN_WIDTH = 128
-    MIN_HEIGHT = 1024
-    
-    mt_width_count = ORIGINAL_CANVAS_WIDTH // METATILE_SIZE
-    # Calculate height needed for the actual metatiles
-    calculated_height = ((num_metatiles + mt_width_count - 1) // mt_width_count) * METATILE_SIZE
-    
-    img_w = max(ORIGINAL_CANVAS_WIDTH, MIN_WIDTH)
-    img_h = max(calculated_height, MIN_HEIGHT)
-    
     magenta_bg = (248, 0, 248, 255)
     layers = {
         "bottom": Image.new("RGBA", (img_w, img_h), magenta_bg),
         "middle": Image.new("RGBA", (img_w, img_h), magenta_bg),
         "top":    Image.new("RGBA", (img_w, img_h), magenta_bg)
     }
-    
-    csv_rows = [["id", "behavior"]]
 
-    # 4. Process Metatiles
-    SECONDARY_TILE_OFFSET = 512
+    csv_rows = [["id", "behavior"]]
 
     for i in range(num_metatiles):
         attr_val = struct.unpack_from("<H", attr_data, i * 2)[0]
         layer_logic = (attr_val & 0xF000)
         behavior_id = (attr_val & 0x00FF)
+
         csv_rows.append([i, BEHAVIOR_MAP_REV.get(behavior_id, f"0x{behavior_id:02X}")])
 
-        if layer_logic == 0x0000: target_layers = ["middle", "top"]
-        elif layer_logic == 0x2000: target_layers = ["bottom", "top"]
-        else: target_layers = ["bottom", "middle"]
+        if layer_logic == 0x0000:
+            target_layers = ["middle", "top"]
+        elif layer_logic == 0x2000:
+            target_layers = ["bottom", "top"]
+        else:
+            target_layers = ["bottom", "middle"]
 
-        mx, my = (i % mt_width_count) * METATILE_SIZE, (i // mt_width_count) * METATILE_SIZE
+        mx = (i % mt_per_row) * METATILE_SIZE
+        my = (i // mt_per_row) * METATILE_SIZE
 
         for layer_idx, layer_name in enumerate(target_layers):
             base_offset = (i * 8 + layer_idx * 4) * 2
-            
+
             for t in range(4):
                 tile_val = struct.unpack_from("<H", metatile_pixel_data, base_offset + (t * 2))[0]
+
                 idx = tile_val & 0x3FF
                 h_flip = (tile_val >> 10) & 1
                 v_flip = (tile_val >> 11) & 1
                 pal_id = (tile_val >> 12) & 0xF
-                
-                # Determine which tileset source to use
-                if idx < SECONDARY_TILE_OFFSET:
-                    # Use Primary: requires pal_id from combined, but pixels from primary
-                    source_lib = primary_paletted
+
+                # ==========================================
+                # TILE SOURCE SELECTION (FIXED)
+                # ==========================================
+
+                if has_primary and has_secondary:
+                    # true engine behavior
+                    if idx >= SECONDARY_TILE_OFFSET:
+                        source_img = secondary_lib.get(pal_id)
+                        tile_idx = idx - SECONDARY_TILE_OFFSET
+                    else:
+                        source_img = primary_lib.get(pal_id)
+                        tile_idx = idx
+                elif has_secondary:
+                    # standalone secondary → no split
+                    source_img = secondary_lib.get(pal_id)
                     tile_idx = idx
                 else:
-                    # Use Secondary: requires pal_id from combined, but pixels from secondary
-                    source_lib = secondary_paletted
-                    tile_idx = idx - SECONDARY_TILE_OFFSET
+                    # primary only
+                    source_img = primary_lib.get(pal_id)
+                    tile_idx = idx
 
-                # Only proceed if we have a valid tileset for this palette
-                if pal_id in source_lib:
-                    source_img = source_lib[pal_id]
-                    tiles_in_row = source_img.width // TILE_SIZE
-                    
-                    tx = (tile_idx % tiles_in_row) * TILE_SIZE
-                    ty = (tile_idx // tiles_in_row) * TILE_SIZE
-                    
-                    try:
-                        tile_img = source_img.crop((tx, ty, tx + TILE_SIZE, ty + TILE_SIZE))
-                        if h_flip: tile_img = ImageOps.mirror(tile_img)
-                        if v_flip: tile_img = ImageOps.flip(tile_img)
-                        
-                        dx, dy = (t % 2) * 8, (t // 2) * 8
-                        layers[layer_name].paste(tile_img, (mx + dx, my + dy), tile_img)
-                    except:
-                        pass
+                if source_img is None:
+                    continue
 
-    # 5. Export
+                tiles_in_row = source_img.width // TILE_SIZE
+                tx = (tile_idx % tiles_in_row) * TILE_SIZE
+                ty = (tile_idx // tiles_in_row) * TILE_SIZE
+
+                try:
+                    tile_img = source_img.crop((tx, ty, tx + TILE_SIZE, ty + TILE_SIZE))
+
+                    if h_flip:
+                        tile_img = ImageOps.mirror(tile_img)
+                    if v_flip:
+                        tile_img = ImageOps.flip(tile_img)
+
+                    dx = (t % 2) * TILE_SIZE
+                    dy = (t // 2) * TILE_SIZE
+
+                    layers[layer_name].paste(tile_img, (mx + dx, my + dy), tile_img)
+                except:
+                    pass
+
     for name, img in layers.items():
+        img = restore_gba_image(img)
         img.save(os.path.join(out_dir, f"{name}.png"))
-    
+
     with open(os.path.join(out_dir, "attributes.csv"), "w", newline='') as f:
         csv.writer(f).writerows(csv_rows)
 
-    print(f"Decompiled secondary set to {img_w}x{img_h} images.")
+    print(f"Decompiled to {out_dir}")
 
-decompile_secondary("decompiletest3","decompiletestsec","decompiletestsec/output")
+# ==========================================
+# USAGE
+# ==========================================
+
+# Primary only
+# decompile_tileset("data/tilesets/primary/xxx")
+
+# Secondary (primary + secondary)
+#decompile_tileset("decompiletest3", "decompiletestsec", "decompiletestsec/output")
+decompile_tileset(primary_path="decompiletest3", secondary_path="decompiletestsec", out_dir="decompiletestsec/output")
+#decompile_tileset(secondary_path="decompiletestsec", out_dir="decompiletestsec/output")
+#decompile_tileset(primary_path="decompiletest3", out_dir="decompiletest3/output")
