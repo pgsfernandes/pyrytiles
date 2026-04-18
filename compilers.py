@@ -3,7 +3,7 @@ from solver import solve
 from pal_tiles import build_palettes, export_jasc, export_indexed_image
 from metatiles import build_metatiles_bin
 
-def compile_primary(path, out_dir, optimal=False):
+def compile_primary(path, out_dir, optimal=False, is_primary=True):
     result = solve(path, optimal)
     if result is None:
         return
@@ -15,10 +15,12 @@ def compile_primary(path, out_dir, optimal=False):
 
     palettes = build_palettes(tiles, assignment)
 
-    export_jasc(palettes, out_dir+"/palettes")
+    export_jasc(palettes, out_dir+"/palettes",is_primary)
     export_indexed_image(img, assignment, palettes, out_dir)
     build_metatiles_bin(path, img, assignment, out_dir)
 
 def compile_secondary(path, out_dir, path_primary=None, optimal=False):
     if path_primary is None:
-        compile_primary(path,out_dir,optimal)
+        compile_primary(path,out_dir,optimal,False)
+    else:
+        compile_primary(path,out_dir,optimal,False)

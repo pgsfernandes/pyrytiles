@@ -29,15 +29,37 @@ def build_palettes(tiles, assignment):
 # ========================
 # EXPORT PALETTE
 # ========================
-def export_jasc(palettes, out_dir):
+def export_jasc(palettes, out_dir, is_primary=True):
     os.makedirs(out_dir, exist_ok=True)
 
-    for i, pal in enumerate(palettes):
-        filename = f"{i:02d}.pal"
-        with open(os.path.join(out_dir, filename), "w") as f:
+    def write_pal(path, pal):
+        with open(path, "w") as f:
             f.write("JASC-PAL\n0100\n16\n")
             for r, g, b in pal:
                 f.write(f"{r} {g} {b}\n")
+
+    # Define special palettes
+    empty_pal = [(0, 0, 0)] * 16
+    primary_marked_pal = [(248, 0, 248)] + [(0, 0, 0)] * 15
+
+    if is_primary:
+        for i in range(12):
+            filename = f"{i:02d}.pal"
+            path = os.path.join(out_dir, filename)
+
+            if 6 <= i <= 11:
+                write_pal(path, primary_marked_pal)
+            else:
+                write_pal(path, palettes[i])
+    else:
+        for i in range(12):
+            filename = f"{i:02d}.pal"
+            path = os.path.join(out_dir, filename)
+
+            if 0 <= i <= 5:
+                write_pal(path, empty_pal)
+            else:
+                write_pal(path, palettes[i - 6])
 
     print("Palettes exported")
 
