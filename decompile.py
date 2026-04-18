@@ -261,6 +261,6 @@ def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output"):
 
 # Secondary (primary + secondary)
 #decompile_tileset("decompiletest3", "decompiletestsec", "decompiletestsec/output")
-decompile_tileset(primary_path="decompiletest3", secondary_path="decompiletestsec", out_dir="decompiletestsec/output")
+#decompile_tileset(primary_path="decompiletest3", secondary_path="decompiletestsec2", out_dir="decompiletestsec2/output")
 #decompile_tileset(secondary_path="decompiletestsec", out_dir="decompiletestsec/output")
 #decompile_tileset(primary_path="decompiletest3", out_dir="decompiletest3/output")
