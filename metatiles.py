@@ -8,7 +8,7 @@ from config import *
 # METATILE HELPERS
 # ========================
 def is_metatile_empty(img, x, y):
-    mag = (248, 0, 248)
+    mag = (255, 0, 255)
     pixels = img.crop((x, y, x + 16, y + 16)).convert("RGB").getdata()
     return all(p == mag for p in pixels)
 

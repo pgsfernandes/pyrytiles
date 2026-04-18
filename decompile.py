@@ -23,7 +23,7 @@ def load_jasc_pal_as_list(filepath):
             parts = line.split()
             if len(parts) >= 3:
                 if i == 0:
-                    colors.extend([248, 0, 248])
+                    colors.extend([255, 0, 255])
                 else:
                     colors.extend([int(parts[0]), int(parts[1]), int(parts[2])])
     while len(colors) < 768:
@@ -163,7 +163,7 @@ def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output"):
     img_w = ORIGINAL_CANVAS_WIDTH
     img_h = ((num_metatiles + mt_per_row - 1) // mt_per_row) * METATILE_SIZE
 
-    magenta_bg = (248, 0, 248, 255)
+    magenta_bg = (255, 0, 255, 255)
     layers = {
         "bottom": Image.new("RGBA", (img_w, img_h), magenta_bg),
         "middle": Image.new("RGBA", (img_w, img_h), magenta_bg),
@@ -244,7 +244,6 @@ def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output"):
                     pass
 
     for name, img in layers.items():
-        img = restore_gba_image(img)
         img.save(os.path.join(out_dir, f"{name}.png"))
 
     with open(os.path.join(out_dir, "attributes.csv"), "w", newline='') as f:
@@ -262,5 +261,6 @@ def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output"):
 # Secondary (primary + secondary)
 #decompile_tileset("decompiletest3", "decompiletestsec", "decompiletestsec/output")
 #decompile_tileset(primary_path="decompiletest3", secondary_path="decompiletestsec2", out_dir="decompiletestsec2/output")
-#decompile_tileset(secondary_path="decompiletestsec", out_dir="decompiletestsec/output")
-#decompile_tileset(primary_path="decompiletest3", out_dir="decompiletest3/output")
+#decompile_tileset(secondary_path="decompiletestsec2", out_dir="decompiletestsec2/output2")
+decompile_tileset(primary_path="decompiletest3", secondary_path="decompiletestsec", out_dir="decompiletestsec/output2")
+#decompile_tileset(primary_path="decompiletest", out_dir="decompiletest/output2")

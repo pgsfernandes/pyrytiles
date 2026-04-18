@@ -30,8 +30,7 @@ def canonical_tile_key(tile):
 
 def create_magenta_tile():
     # Create a solid magenta (255, 0, 255) tile
-    #return Image.new("RGBA", (TILE_SIZE, TILE_SIZE), (255, 0, 255, 255))
-    return Image.new("RGBA", (TILE_SIZE, TILE_SIZE), (248, 0, 248, 255))
+    return Image.new("RGBA", (TILE_SIZE, TILE_SIZE), (255, 0, 255, 255))
 
 def collect_unique_tiles(all_tiles):
     seen = set()
@@ -104,16 +103,24 @@ def dedup(input_paths, output_path=None, save=True, verbose=True):
 def load_jasc_pal_as_list(filepath):
     colors = []
     with open(filepath, 'r') as f:
+        # Skip the JASC-PAL header (3 lines)
         lines = f.readlines()[3:]
+        
         for i, line in enumerate(lines):
             parts = line.split()
             if len(parts) >= 3:
                 if i == 0:
-                    colors.extend([248, 0, 248])
+                    # FORCE the first color to GBA-compatible Magenta
+                    colors.extend([255, 0, 255])
                 else:
+                    # Load all other colors as they are
                     colors.extend([int(parts[0]), int(parts[1]), int(parts[2])])
+                    
+    # Ensure the palette list is exactly 768 entries (256 colors * 3 channels)
+    # for PIL's 'P' mode requirement.
     while len(colors) < 768:
         colors.extend([0, 0, 0])
+        
     return colors[:768]
 
 def load_palettes(path):
@@ -137,41 +144,20 @@ def create_tileset_library(tiles_png_path, palettes):
         version = base_img.copy()
         version.putpalette(pal_data)
         rgba = version.convert("RGBA")
-
-        indices = list(base_img.getdata())
-        pixels = list(rgba.getdata())
-
         new_pixels = [
-            (r, g, b, 0) if indices[i] == 0 else (r, g, b, a)
-            for i, (r, g, b, a) in enumerate(pixels)
-        ]
+			(r, g, b, 255) if idx == 0 else (r, g, b, a)
+			for idx, (r, g, b, a) in zip(base_img.getdata(), rgba.getdata())
+		]
 
         rgba.putdata(new_pixels)
         library[pal_id] = rgba
 
     return library
 
-from tiles_dedup import dedup
 from utils import to_gba
+
+from tiles_dedup import dedup
 from config import TILE_SIZE, MAGENTA
-
-def to_gba(color):
-    r, g, b = color[:3]
-    return ((r // 8) * 8, (g // 8) * 8, (b // 8) * 8)
-
-def apply_gba_to_image(img):
-    """Converts an entire RGBA image to GBA-compatible colors."""
-    img = img.convert("RGBA")
-    data = img.getdata()
-    new_data = []
-    for item in data:
-        if item[3] == 0: # Preserve transparency
-            new_data.append((0, 0, 0, 0))
-        else:
-            r, g, b = to_gba(item[:3])
-            new_data.append((r, g, b, 255))
-    img.putdata(new_data)
-    return img
 
 def load_tiles_sec(secondary_path,primary_path):
     # 1. LOAD AND NORMALIZE PRIMARY DATA
@@ -183,9 +169,7 @@ def load_tiles_sec(secondary_path,primary_path):
     
     primary_canonical_keys = set()
     for pal_id, full_image in primary_library.items():
-        # IMPORTANT: Apply GBA color conversion before generating keys
-        gba_image = apply_gba_to_image(full_image)
-        recolored_tiles = split_into_tiles(gba_image)
+        recolored_tiles = split_into_tiles(full_image)
         
         for tile in recolored_tiles:
             primary_canonical_keys.add(canonical_tile_key(tile))
@@ -199,8 +183,7 @@ def load_tiles_sec(secondary_path,primary_path):
         if os.path.exists(p):
             img = load_and_validate(p)
             # Apply GBA color conversion to secondary layers
-            gba_img = apply_gba_to_image(img)
-            secondary_tiles_raw.extend(split_into_tiles(gba_img))
+            secondary_tiles_raw.extend(split_into_tiles(img))
 
     # 3. FILTER & DEDUPLICATE
     # Now both sets are in GBA color space, so comparisons are accurate
@@ -222,19 +205,19 @@ def load_tiles_sec(secondary_path,primary_path):
     tile_color_sets = []
     for tile in unique_secondary_tiles:
         colors = {
-            to_gba(tile.getpixel((x, y))[:3])
+            tile.getpixel((x, y))[:3]
             for y in range(TILE_SIZE)
             for x in range(TILE_SIZE)
             if tile.getpixel((x, y))[3] != 0
         }
         # Ensure Magenta (GBA version) is removed from the set
-        colors.discard(to_gba(MAGENTA))
+        colors.discard(MAGENTA)
         tile_color_sets.append(colors)
     output_img.save(os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/debug.png"))
 
     return output_img, tile_color_sets
 
-input_dir = os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/decompiletest")
-#input_dir_secondary = os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/secondarycomptest")
-input_dir_secondary = os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/decompiletest/output")
+input_dir = os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/decompiletest3")
+input_dir_secondary = os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/decompiletestsec/output2")
+#input_dir_secondary = os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/decompiletest3/output2")
 load_tiles_sec(input_dir_secondary,input_dir)

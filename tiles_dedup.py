@@ -26,8 +26,7 @@ def canonical_tile_key(tile):
 
 def create_magenta_tile():
     # Create a solid magenta (255, 0, 255) tile
-    #return Image.new("RGBA", (TILE_SIZE, TILE_SIZE), (255, 0, 255, 255))
-    return Image.new("RGBA", (TILE_SIZE, TILE_SIZE), (248, 0, 248, 255))
+    return Image.new("RGBA", (TILE_SIZE, TILE_SIZE), (255, 0, 255, 255))
 
 def collect_unique_tiles(all_tiles):
     seen = set()

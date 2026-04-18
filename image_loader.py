@@ -18,13 +18,13 @@ def load_tiles(path):
     for ty in range(0, h, TILE_SIZE):
         for tx in range(0, w, TILE_SIZE):
             colors = {
-                to_gba(img.getpixel((tx + x, ty + y))[:3])
+                img.getpixel((tx + x, ty + y))[:3]
                 for y in range(TILE_SIZE)
                 for x in range(TILE_SIZE)
                 if img.getpixel((tx + x, ty + y))[3] != 0
             }
 
-            colors.discard(to_gba(MAGENTA))
+            colors.discard(MAGENTA)
             tiles.append(colors)
 
     return img, tiles

@@ -16,9 +16,9 @@ def build_palettes(tiles, assignment):
     final = []
 
     for p in range(NUM_PALETTES):
-        colors = [to_gba(c) for c in list(palettes[p])[:MAX_COLORS]]
+        colors = [c for c in list(palettes[p])[:MAX_COLORS]]
 
-        palette = [to_gba(MAGENTA)] + colors
+        palette = [MAGENTA] + colors
         palette += [(0, 0, 0)] * (16 - len(palette))
 
         final.append(palette)
@@ -40,7 +40,7 @@ def export_jasc(palettes, out_dir, is_primary=True):
 
     # Define special palettes
     empty_pal = [(0, 0, 0)] * 16
-    primary_marked_pal = [(248, 0, 248)] + [(0, 0, 0)] * 15
+    primary_marked_pal = [(255, 0, 255)] + [(0, 0, 0)] * 15
 
     if is_primary:
         for i in range(12):
@@ -78,7 +78,6 @@ def export_indexed_image(img, assignment, palettes, out_dir):
 
     w, h = img.size
     tiles_x = w // TILE_SIZE
-    gba_magenta = to_gba(MAGENTA)
 
     best_palette = max(
         palettes,
@@ -96,9 +95,9 @@ def export_indexed_image(img, assignment, palettes, out_dir):
 
         for y in range(TILE_SIZE):
             for x in range(TILE_SIZE):
-                raw = to_gba(img.getpixel((tx + x, ty + y)))
+                raw = img.getpixel((tx + x, ty + y))
 
-                idx = 0 if raw == gba_magenta else nearest_palette_index(raw, palette)
+                idx = 0 if raw == MAGENTA else nearest_palette_index(raw, palette)
                 composite.putpixel((tx + x, ty + y), idx)
 
     composite.save(os.path.join(out_dir, "tiles.png"), bits=4)
