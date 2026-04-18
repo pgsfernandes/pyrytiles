@@ -155,9 +155,6 @@ def create_tileset_library(tiles_png_path, palettes):
 
     return library
 
-from utils import to_gba
-
-from tiles_dedup import dedup
 from config import TILE_SIZE, MAGENTA
 
 def load_tiles_sec(secondary_path,primary_path):
@@ -216,9 +213,9 @@ def load_tiles_sec(secondary_path,primary_path):
         tile_color_sets.append(colors)
     output_img.save(os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/debug.png"))
 
-    return output_img, tile_color_sets
+    return output_img, tile_color_sets, palettes
 
-input_dir = os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/decompiletest3")
-input_dir_secondary = os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/decompiletestsec/output2")
+#input_dir = os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/decompiletest3")
+#input_dir_secondary = os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/decompiletestsec/output2")
 #input_dir_secondary = os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/decompiletest3/output2")
-load_tiles_sec(input_dir_secondary,input_dir)
+#load_tiles_sec(input_dir_secondary,input_dir)
