@@ -119,10 +119,10 @@ def export_indexed_image_secondary(img, assignment, palettes, out_dir):
     w, h = img.size
     tiles_x = w // TILE_SIZE
 
-    best_palette = max(
-        palettes[6:12],
-        key=lambda p: sum(1 for i, c in enumerate(p) if i and c != (0, 0, 0))
-    )
+    #best_palette = max(
+    #    palettes[6:12],
+    #    key=lambda p: sum(1 for i, c in enumerate(p) if i and c != (0, 0, 0))
+    #)
 
     composite = Image.new("P", (w, h))
     #composite.putpalette(build_pil_palette(best_palette))
@@ -130,7 +130,6 @@ def export_indexed_image_secondary(img, assignment, palettes, out_dir):
 
     for i, assigned_p in enumerate(assignment):
         palette = palettes[assigned_p]
-
         tx = (i % tiles_x) * TILE_SIZE
         ty = (i // tiles_x) * TILE_SIZE
 
@@ -139,6 +138,7 @@ def export_indexed_image_secondary(img, assignment, palettes, out_dir):
                 raw = img.getpixel((tx + x, ty + y))
 
                 idx = 0 if raw == MAGENTA else nearest_palette_index(raw, palette)
+                #idx = nearest_palette_index(raw, palette)
                 composite.putpixel((tx + x, ty + y), idx)
 
     composite.save(os.path.join(out_dir, "tiles.png"), bits=4)

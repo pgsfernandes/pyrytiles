@@ -76,28 +76,24 @@ import os
 def fits_palette(tile, palette_set):
     return all(c in palette_set for c in tile)
 
-def load_jasc_pal(pal_path: str) -> set:
+def load_jasc_pal(pal_path: str) -> list:
     """
-    Loads a JASC-PAL file and returns its colors as a set of (R, G, B) tuples,
-    matching the tile_color_sets format.
-    
-    :param pal_path: path to the .pal file
-    :return: set of (R, G, B) tuples
+    Loads a JASC-PAL file and returns its colors as a list of (R, G, B) tuples,
+    preserving order.
     """
-    colors = set()
     with open(pal_path, "r") as f:
         lines = [line.strip() for line in f.readlines()]
-    
-    # Validate header
+
     if lines[0] != "JASC-PAL" or lines[1] != "0100":
         raise ValueError(f"Invalid JASC-PAL file: {pal_path}")
-    
+
     num_colors = int(lines[2])
-    
+
+    colors = []
     for line in lines[3:3 + num_colors]:
         r, g, b = map(int, line.split())
-        colors.add((r, g, b))
-    
+        colors.append((r, g, b))
+
     return colors
 def load_jasc_pals_from_dir(pal_dir: str, max_index: int = 5) -> dict:
     """
@@ -186,6 +182,7 @@ def find_unmatched_tiles(tile_color_sets: list, palettes: dict) -> list:
     return unmatched
 
 from tiles_secondary import create_output_image
+
 def reorder_tiles(tiles_before: list, unmatched: list, assignment: list, pals_primary: dict) -> tuple:
     """
     Reorders tiles so matched ones come first, then unmatched.
@@ -268,12 +265,13 @@ def solve_secondary(path, path_primary, optimal):
     pals_primary=load_jasc_pals_from_dir(path_primary+"/palettes")
     #report = compare_tile_colors_to_palettes(tiles, pals_primary)
     unmatched = find_unmatched_tiles(tiles, pals_primary)
-
-    #for r in report["results"]:
-    #    if r["fits"]:
-    #        print(f"Tile {r['tile_index']}: fits palettes {r['matching_palettes']}")
-    #    else:
-    #        print(f"Tile {r['tile_index']}: no fit — closest: {r['closest_palette']}, missing: {r['missing_colors']}")
+    '''
+    for r in report["results"]:
+        if r["fits"]:
+            print(f"Tile {r['tile_index']}: fits palettes {r['matching_palettes']}")
+        #else:
+        #    print(f"Tile {r['tile_index']}: no fit — closest: {r['closest_palette']}, missing: {r['missing_colors']}")
+    '''
 
     #print(report["summary"])
 
