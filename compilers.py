@@ -6,6 +6,7 @@ from metatiles import build_metatiles_bin, build_metatiles_bin_secondary
 from PIL import Image
 from utils import vconcat_indexed
 from config import MAGENTA
+from image_loader import load_tiles
 
 def compile_primary(path, out_dir, optimal=False, is_primary=True):
     result = solve(path, optimal)
@@ -24,6 +25,33 @@ def compile_primary(path, out_dir, optimal=False, is_primary=True):
     build_metatiles_bin(path, img, assignment, out_dir)
 
 from tiles_dedup import split_into_tiles
+
+def get_primary_palette_map(tile_color_sets: list, palettes: dict) -> dict:
+    """
+    Compares each tile's color set against all palettes.
+
+    :param tile_color_sets: list of sets of (R, G, B) tuples, one per tile
+    :param palettes: dict mapping palette_id -> set/list of (R, G, B) tuples
+    :return: dict with per-tile results and a summary
+    """
+
+    matching_palettes = []
+
+    for i, tile_colors in enumerate(tile_color_sets):
+
+        for pal_id, pal_colors in palettes.items():
+            pal_set = set(pal_colors)
+            missing = tile_colors - pal_set
+
+            if not missing:
+                matching_palettes.append(pal_id)
+                break
+
+    return matching_palettes
+
+from decompile import decompile_tileset
+from image_loader import load_tiles_from_imgs
+from utils import match_palettes_by_tiles
 
 def compile_secondary(path, out_dir, path_primary=None, optimal=False):
     if path_primary is None:
@@ -68,10 +96,15 @@ def compile_secondary(path, out_dir, path_primary=None, optimal=False):
         total_tiles=vconcat_indexed(tiles_prim,tiles_second)
         total_tiles.save(os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/debug.png"))
 
-        def prepend_zeros(v, n):
-            return [0]*n + v
+        #def prepend_zeros(v, n):
+        #    return [0]*n + v
+        
+        #full_assignment_with_prim=prepend_zeros(full_assignment,len(split_into_tiles(tiles_prim)))
 
-        full_assignment_with_prim=prepend_zeros(full_assignment,len(split_into_tiles(tiles_prim)))
+        imgprim, prim_colors_sets = load_tiles_from_imgs(decompile_tileset(path_primary,to_print=False))
 
-        build_metatiles_bin_secondary(path, img, full_assignment, out_dir)
+        #print(match_palettes_by_tiles(imgprim,tiles_prim,pals_primary))
+
+        #build_metatiles_bin_secondary(path, img, imgprim, full_assignment, get_primary_palette_map(prim_colors_sets,pals_primary), out_dir)
+        build_metatiles_bin_secondary(path, img, imgprim, full_assignment, match_palettes_by_tiles(imgprim,tiles_prim,pals_primary), out_dir)
         #build_metatiles_bin_secondary(path, total_tiles, full_assignment_with_prim, out_dir)

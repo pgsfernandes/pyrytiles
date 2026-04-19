@@ -105,7 +105,7 @@ def restore_gba_image(img):
 # ==========================================
 # UNIFIED DECOMPILER
 # ==========================================
-def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output"):
+def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output", to_print=True):
     if not primary_path and not secondary_path:
         raise ValueError("You must provide at least one tileset path.")
 
@@ -117,7 +117,7 @@ def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output"):
     has_primary = primary_path is not None
     has_secondary = secondary_path is not None
 
-    print("Loading palettes...")
+    #print("Loading palettes...")
 
     p_pals = load_palettes(primary_path) if has_primary else {}
     s_pals = load_palettes(secondary_path) if has_secondary else {}
@@ -133,7 +133,7 @@ def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output"):
         # primary only
         merged_pals = p_pals
 
-    print("Generating tileset libraries...")
+    #print("Generating tileset libraries...")
 
     primary_lib = None
     secondary_lib = None
@@ -245,25 +245,16 @@ def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output"):
                     layers[layer_name].paste(tile_img, (mx + dx, my + dy), tile_img)
                 except:
                     pass
+    if to_print:
+        for name, img in layers.items():
+            img.save(os.path.join(out_dir, f"{name}.png"))
 
-    for name, img in layers.items():
-        img.save(os.path.join(out_dir, f"{name}.png"))
+        with open(os.path.join(out_dir, "attributes.csv"), "w", newline='') as f:
+            csv.writer(f).writerows(csv_rows)
 
-    with open(os.path.join(out_dir, "attributes.csv"), "w", newline='') as f:
-        csv.writer(f).writerows(csv_rows)
-
-    print(f"Decompiled to {out_dir}")
-
-# ==========================================
-# USAGE
-# ==========================================
-
-# Primary only
-# decompile_tileset("data/tilesets/primary/xxx")
-
-# Secondary (primary + secondary)
-#decompile_tileset("decompiletest3", "decompiletestsec", "decompiletestsec/output")
-#decompile_tileset(primary_path="decompiletest3", secondary_path="decompiletestsec2", out_dir="decompiletestsec2/output")
-#decompile_tileset(secondary_path="decompiletestsec2", out_dir="decompiletestsec2/output2")
-#decompile_tileset(primary_path="decompiletest3", secondary_path="decompiletestsec", out_dir="decompiletestsec/output2")
-#decompile_tileset(primary_path="decompiletest", out_dir="decompiletest/output2")
+        print(f"Decompiled to {out_dir}")
+    else:
+        images=[]
+        for name, img in layers.items():
+            images.append(img)
+        return images

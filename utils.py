@@ -56,3 +56,53 @@ def vconcat_indexed(img1, img2):
     out.paste(img2, (0, img1.height))
 
     return out
+
+import numpy as np
+from PIL import Image
+
+def match_palettes_by_tiles(original_img, indexed_img, palettes):
+    # 1. Convert Original to RGB NumPy array
+    if hasattr(original_img, "convert"):
+        original_img = np.array(original_img.convert("RGB"))
+    else:
+        original_img = np.asarray(original_img)
+
+    # 2. Convert Indexed image carefully
+    if hasattr(indexed_img, "convert"):
+        # If the image is already in 'P' (Palette) mode, this gets the raw indices.
+        # Otherwise, 'L' is used, but we must ensure values are 0-15.
+        indexed_img = np.array(indexed_img)
+    else:
+        indexed_img = np.asarray(indexed_img)
+
+    h, w, _ = original_img.shape
+    palette_indices = []
+    
+    np_palettes = {k: np.array(v, dtype=np.uint8) for k, v in palettes.items()}
+
+    for y in range(0, h, 8):
+        for x in range(0, w, 8):
+            original_tile = original_img[y:y+8, x:x+8]
+            indexed_tile = indexed_img[y:y+8, x:x+8]
+            
+            # --- DEBUG CHECK ---
+            # If you still get the error, this will tell you exactly which tile is bad
+            if indexed_tile.max() >= 16:
+                # Force indices into 0-15 range to prevent crashing, 
+                # though this tile will likely fail to match.
+                indexed_tile = indexed_tile % 16 
+            
+            found_match = False
+            for pal_idx, colors in np_palettes.items():
+                # Apply palette
+                colored_tile = colors[indexed_tile]
+                
+                if np.array_equal(original_tile, colored_tile):
+                    palette_indices.append(pal_idx)
+                    found_match = True
+                    break
+            
+            if not found_match:
+                palette_indices.append(None) 
+                
+    return palette_indices

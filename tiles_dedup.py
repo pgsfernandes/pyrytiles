@@ -95,3 +95,16 @@ def dedup(input_paths, output_path=None, save=True, verbose=True):
             print(f"Saved output to {output_path}")
 
     return output_img, unique_tiles
+
+def dedup_from_imgs(imgs):
+    all_tiles = []
+
+    for img in imgs:
+        tiles = split_into_tiles(img)
+        all_tiles.extend(tiles)
+
+    unique_tiles = collect_unique_tiles(all_tiles)
+
+    output_img = create_output_image(unique_tiles)
+
+    return output_img, unique_tiles

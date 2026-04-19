@@ -134,7 +134,51 @@ def build_metatiles_bin(path, unique_img, palette_list, out_dir):
 # ========================
 # METATILE BUILD SECONDARY
 # ========================
-def build_metatiles_bin_secondary(path, unique_img, palette_list, out_dir):
+def get_tile_lookup_sec_prim_tiles(unique_img, palette_list):
+    lookup = {}
+    tiles_w = unique_img.width // TILE_SIZE
+    tiles_h = unique_img.height // TILE_SIZE
+
+    for i in range(tiles_w * tiles_h):
+        tx = (i % tiles_w) * TILE_SIZE
+        ty = (i // tiles_w) * TILE_SIZE
+
+        base = unique_img.crop((tx, ty, tx + TILE_SIZE, ty + TILE_SIZE))
+        pal = palette_list[i] if i < len(palette_list) else 0
+
+        # The tile index is now shifted by the offset
+        vram_index = i
+        for h in (0, 1):
+            for v in (0, 1):
+                t = base
+                if h: t = ImageOps.mirror(t)
+                if v: t = ImageOps.flip(t)
+
+                key = tuple(t.getdata())
+                # Store the shifted index
+                lookup.setdefault(key, (vram_index, pal, h, v))
+
+    return lookup
+
+def encode_layer_secondary(img, x, y, secondary_lookup, primary_lookup, out):
+    for dy in (0, 8):
+        for dx in (0, 8):
+            quad = img.crop((x + dx, y + dy, x + dx + 8, y + dy + 8))
+            key = tuple(quad.getdata())
+
+            # 1. Check secondary first (most likely)
+            if key in secondary_lookup:
+                idx, pal, h, v = secondary_lookup[key]
+            # 2. Fallback to primary
+            elif key in primary_lookup:
+                idx, pal, h, v = primary_lookup[key]
+            else:
+                idx, pal, h, v = 0, 0, 0, 0
+
+            val = (pal << 12) | (v << 11) | (h << 10) | (idx & 0x3FF)
+            out.extend(struct.pack("<H", val))
+
+def build_metatiles_bin_secondary(path, unique_img, img_prim, palette_list, palette_list_prim, out_dir):
     bottom = Image.open(f"{path}/bottom.png").convert("RGBA")
     middle = Image.open(f"{path}/middle.png").convert("RGBA")
     top = Image.open(f"{path}/top.png").convert("RGBA")
@@ -154,6 +198,7 @@ def build_metatiles_bin_secondary(path, unique_img, palette_list, out_dir):
                     attributes_list.append(row[1].strip())
 
     lookup = get_tile_lookup(unique_img, palette_list, 512)
+    lookup_primary = get_tile_lookup_sec_prim_tiles(img_prim,palette_list_prim)
     data = bytearray()       
     attr_data = bytearray()  
 
@@ -166,18 +211,24 @@ def build_metatiles_bin_secondary(path, unique_img, palette_list, out_dir):
             # --- Visual Encoding & Layer Attribute Logic ---
             if is_metatile_empty(bottom, x, y):
                 layer_attr = 0x0000 
-                encode_layer(middle, x, y, lookup, data)
-                encode_layer(top, x, y, lookup, data)
+                encode_layer_secondary(middle, x, y, lookup, lookup_primary, data)
+                encode_layer_secondary(top, x, y, lookup, lookup_primary, data)
+                #encode_layer(middle, x, y, lookup, data)
+                #encode_layer(top, x, y, lookup, data)
 
             elif is_metatile_empty(middle, x, y):
                 layer_attr = 0x2000
-                encode_layer(bottom, x, y, lookup, data)
-                encode_layer(top, x, y, lookup, data)
+                encode_layer_secondary(bottom, x, y, lookup, lookup_primary, data)
+                encode_layer_secondary(top, x, y, lookup, lookup_primary, data)
+                #encode_layer(bottom, x, y, lookup, data)
+                #encode_layer(top, x, y, lookup, data)
 
             else:
                 layer_attr = 0x1000
-                encode_layer(bottom, x, y, lookup, data)
-                encode_layer(middle, x, y, lookup, data)
+                encode_layer_secondary(bottom, x, y, lookup, lookup_primary, data)
+                encode_layer_secondary(middle, x, y, lookup, lookup_primary, data)
+                #encode_layer(bottom, x, y, lookup, data)
+                #encode_layer(middle, x, y, lookup, data)
 
             # --- Attribute Binary Logic ---
             # Correctly pull from our cleaned attributes_list

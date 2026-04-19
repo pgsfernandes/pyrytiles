@@ -28,3 +28,26 @@ def load_tiles(path):
             tiles.append(colors)
 
     return img, tiles
+
+from tiles_dedup import dedup_from_imgs
+
+def load_tiles_from_imgs(imgs):
+    img, _ = dedup_from_imgs(imgs)
+    img = img.convert("RGBA")
+
+    tiles = []
+    w, h = img.size
+
+    for ty in range(0, h, TILE_SIZE):
+        for tx in range(0, w, TILE_SIZE):
+            colors = {
+                img.getpixel((tx + x, ty + y))[:3]
+                for y in range(TILE_SIZE)
+                for x in range(TILE_SIZE)
+                if img.getpixel((tx + x, ty + y))[3] != 0
+            }
+
+            colors.discard(MAGENTA)
+            tiles.append(colors)
+
+    return img, tiles
