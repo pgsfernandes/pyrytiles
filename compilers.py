@@ -1,5 +1,6 @@
 import os
-from solver import solve, solve_secondary
+from solver import solve
+from solver_sec import solve_secondary
 from pal_tiles import build_palettes, export_jasc, export_indexed_image, export_indexed_image_secondary
 from metatiles import build_metatiles_bin
 from config import MAGENTA

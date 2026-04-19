@@ -4,7 +4,7 @@ METATILE_SIZE = 16
 NUM_PALETTES = 6
 MAX_COLORS = 15
 MAGENTA = (255, 0, 255)
-GBA_MAGENTA = (248, 0, 248) # 5-bit rounded magenta
+#GBA_MAGENTA = (248, 0, 248) # 5-bit rounded magenta
 
 # Solver Settings
 MAX_TIME = 200.0
