@@ -216,7 +216,7 @@ def load_tiles_sec(secondary_path,primary_path):
         tile_color_sets.append(colors)
     output_img.save(os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/debug.png"))
 
-    return output_img, tile_color_sets, palettes
+    return output_img, tile_color_sets
 
 #input_dir = os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/decompiletest3")
 #input_dir_secondary = os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/decompiletestsec/output2")

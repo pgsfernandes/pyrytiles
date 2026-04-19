@@ -186,11 +186,12 @@ def find_unmatched_tiles(tile_color_sets: list, palettes: dict) -> list:
     return unmatched
 
 def solve_secondary(path, path_primary, optimal):
-    img, tiles, prim_palettes = load_tiles_sec(path, path_primary)
+    img, tiles = load_tiles_sec(path, path_primary)
 
     #print(load_jasc_pals_from_dir(path_primary+"/palettes"))
-    report = compare_tile_colors_to_palettes(tiles, load_jasc_pals_from_dir(path_primary+"/palettes"))
-    unmatched = find_unmatched_tiles(tiles, load_jasc_pals_from_dir(path_primary+"/palettes"))
+    pals_primary=load_jasc_pals_from_dir(path_primary+"/palettes")
+    #report = compare_tile_colors_to_palettes(tiles, pals_primary)
+    unmatched = find_unmatched_tiles(tiles, pals_primary)
 
     #for r in report["results"]:
     #    if r["fits"]:
@@ -198,11 +199,12 @@ def solve_secondary(path, path_primary, optimal):
     #    else:
     #        print(f"Tile {r['tile_index']}: no fit — closest: {r['closest_palette']}, missing: {r['missing_colors']}")
 
-    print(report["summary"])
+    #print(report["summary"])
 
-    print(len(unmatched))
+    print("Number of tiles to matched to secondary palettes: ", len(unmatched))
 
     # Update the reference
+    tiles_before=tiles
     tiles=unmatched
     n = len(tiles)
 
@@ -258,4 +260,4 @@ def solve_secondary(path, path_primary, optimal):
     ]
 
     print("Solution found!")
-    return img, tiles, assignment
+    return img, tiles, assignment, pals_primary
