@@ -6,6 +6,8 @@ from PIL import Image, ImageOps
 import sys
 from config import TILE_SIZE
 
+import numpy as np
+
 OUTPUT_WIDTH = 128
 OUTPUT_HEIGHT = 256
 
@@ -140,7 +142,8 @@ def create_tileset_library(tiles_png_path, palettes):
     if not os.path.exists(tiles_png_path):
         return {}
 
-    base_img = Image.open(tiles_png_path).convert("P")
+    #base_img = Image.open(tiles_png_path).convert("P")
+    base_img = Image.open(tiles_png_path)
     library = {}
 
     for pal_id, pal_data in palettes.items():
@@ -149,7 +152,7 @@ def create_tileset_library(tiles_png_path, palettes):
         rgba = version.convert("RGBA")
         new_pixels = [
 			#(r, g, b, 255) if idx == 0 else (r, g, b, a)
-			(r, g, b, a)
+			(r, g, b, 255)
 			for idx, (r, g, b, a) in zip(base_img.getdata(), rgba.getdata())
 		]
 
@@ -188,10 +191,33 @@ def load_tiles_sec(secondary_path,primary_path):
 
     # 3. FILTER & DEDUPLICATE
     # Now both sets are in GBA color space, so comparisons are accurate
-    filtered_secondary = [
-        tile for tile in secondary_tiles_raw 
-        if canonical_tile_key(tile) not in primary_canonical_keys
-    ]
+    #filtered_secondary = [
+    #    tile for tile in secondary_tiles_raw 
+    #    if canonical_tile_key(tile) not in primary_canonical_keys
+    #]
+
+    def is_uniform(tile):
+        """Returns True if all pixels in the tile are the same color."""
+        # Convert PIL Image to NumPy array if it hasn't been converted yet
+        tile_data = np.asarray(tile)
+        
+        # Check if all pixels match the top-left pixel
+        # tile_data[0, 0] is the RGB value of the first pixel
+        return np.all(tile_data == tile_data[0, 0])
+
+    # ... inside your function ...
+
+    # 3. FILTER & DEDUPLICATE
+    filtered_secondary = []
+    for tile in secondary_tiles_raw:
+        # Condition 1: Tile is not in the primary tileset
+        not_in_primary = canonical_tile_key(tile) not in primary_canonical_keys
+        
+        # Condition 2: Tile has no structure (all same color)
+        is_solid_color = is_uniform(tile)
+        
+        if not_in_primary or is_solid_color:
+            filtered_secondary.append(tile)
 
     # Collect unique tiles (handles Magenta tile at index 0)
     unique_secondary_tiles = collect_unique_tiles(filtered_secondary)

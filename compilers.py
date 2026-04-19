@@ -63,8 +63,6 @@ def compile_secondary(path, out_dir, path_primary=None, optimal=False):
 
         img, tiles, assignment, full_assignment, pals_primary = result
 
-        #img.save(os.path.join(out_dir, "debug.png"))
-
         os.makedirs(out_dir, exist_ok=True)
         os.makedirs(out_dir+"/palettes", exist_ok=True)
 

@@ -23,7 +23,7 @@ compile_primary(input_dir,out_dir)
 #input_dir = os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/lightplat2/output")
 #out_dir = os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/lightplat2/compiled")
 #compile_primary(input_dir,out_dir,optimal=True)
-#compile_primary(path="Test/EmeraldGeneral/Decompiled",out_dir="Test/EmeraldGeneral/Recompiled",optimal=False)
+#compile_primary(path="Test/EmeraldGeneral/Decompiled",out_dir="Test/EmeraldGeneral/Recompiled",optimal=True)
 
 '''
 input_dir_secondary = os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/sec_comp_test1")
@@ -34,4 +34,5 @@ compile_secondary(input_dir_secondary, output_dir, input_dir_primary, optimal=Fa
 '''
 
 #decompile_tileset(primary_path="Test/EmeraldGeneral", secondary_path="Test/Slateport", out_dir="Test/Slateport/DecompiledEmeraldOriginal")
+compile_primary(path="Test/EmeraldGeneral/Decompiled",out_dir="Test/EmeraldGeneral/Recompiled",optimal=True)
 compile_secondary(path="Test/Slateport/DecompiledEmeraldOriginal",out_dir="Test/Slateport/Recompiled-New",path_primary="Test/EmeraldGeneral/Recompiled",optimal=False)
