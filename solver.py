@@ -185,6 +185,82 @@ def find_unmatched_tiles(tile_color_sets: list, palettes: dict) -> list:
 
     return unmatched
 
+from tiles_secondary import create_output_image
+def reorder_tiles(tiles_before: list, unmatched: list, assignment: list, pals_primary: dict) -> tuple:
+    """
+    Reorders tiles so matched ones come first, then unmatched.
+    Also returns a full assignment vector for all tiles in the new order.
+
+    :param tiles_before: original full list of tile color sets
+    :param unmatched: list of color sets that didn't match any primary palette
+    :param assignment: assignment vector for unmatched tiles (indices into secondary palettes)
+    :param pals_primary: dict of primary palettes
+    :return: (reordered_tile_color_sets, full_assignment)
+    """
+    unmatched_set = [frozenset(t) for t in unmatched]
+
+    matched = []
+    matched_assignments = []
+
+    for tile in tiles_before:
+        if frozenset(tile) not in unmatched_set:
+            # find which primary palette it fits
+            for pal_id, pal_colors in pals_primary.items():
+                if set(tile).issubset(set(pal_colors)):
+                    matched.append(tile)
+                    matched_assignments.append(pal_id)
+                    break
+
+    # offset unmatched assignment indices to come after primary palettes
+    num_primary = len(pals_primary)
+    unmatched_assignments = [a + num_primary for a in assignment]
+
+    reordered_tiles = matched + list(unmatched)
+    full_assignment = matched_assignments + unmatched_assignments
+
+    return reordered_tiles, full_assignment
+
+from config import TILE_SIZE
+
+def reorder_image(img, reordered_tiles, tiles_before):
+    """
+    Creates a new image with tiles in the reordered order (matched first, then unmatched).
+
+    :param img: original PIL image from load_tiles_sec
+    :param reordered_tiles: reordered list of tile color sets (matched + unmatched)
+    :param tiles_before: original list of tile color sets (same order as img)
+    :return: new PIL image with tiles in reordered order
+    """
+    tiles_per_row = 128 // TILE_SIZE
+
+    # Extract all tile images from the original image, in original order
+    tile_images = []
+    for idx in range(len(tiles_before)):
+        x = (idx % tiles_per_row) * TILE_SIZE
+        y = (idx // tiles_per_row) * TILE_SIZE
+        tile_img = img.crop((x, y, x + TILE_SIZE, y + TILE_SIZE))
+        tile_images.append((frozenset(tiles_before[idx]), tile_img))
+
+    # Build a lookup from color set -> tile image
+    # Use a list to handle duplicates (multiple tiles with same color set)
+    from collections import defaultdict
+    lookup = defaultdict(list)
+    for color_set, tile_img in tile_images:
+        lookup[color_set].append(tile_img)
+
+    # Track how many times each color set has been used
+    usage = defaultdict(int)
+
+    # Build reordered tile images
+    reordered_tile_images = []
+    for tile_colors in reordered_tiles:
+        key = frozenset(tile_colors)
+        idx = usage[key]
+        reordered_tile_images.append(lookup[key][idx])
+        usage[key] += 1
+
+    return create_output_image(reordered_tile_images)
+
 def solve_secondary(path, path_primary, optimal):
     img, tiles = load_tiles_sec(path, path_primary)
 
@@ -260,4 +336,9 @@ def solve_secondary(path, path_primary, optimal):
     ]
 
     print("Solution found!")
-    return img, tiles, assignment, pals_primary
+
+    reordered_tiles, full_assignment = reorder_tiles(tiles_before, tiles, assignment, pals_primary)
+    img_new = reorder_image(img, reordered_tiles,tiles_before)
+
+    #return img, tiles, assignment, pals_primary
+    return img_new, tiles, assignment, full_assignment, pals_primary
