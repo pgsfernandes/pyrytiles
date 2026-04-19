@@ -248,6 +248,5 @@ def load_tiles_sec(secondary_path,primary_path):
         # Ensure Magenta (GBA version) is removed from the set
         colors.discard(MAGENTA)
         tile_color_sets.append(colors)
-    #output_img.save(os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/debug.png"))
 
     return output_img, tile_color_sets

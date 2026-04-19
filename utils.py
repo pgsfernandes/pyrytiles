@@ -104,5 +104,6 @@ def match_palettes_by_tiles(original_img, indexed_img, palettes):
             
             if not found_match:
                 palette_indices.append(None) 
+                #palette_indices.append(0) 
                 
     return palette_indices

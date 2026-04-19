@@ -90,9 +90,9 @@ def compile_secondary(path, out_dir, path_primary=None, optimal=False):
 
         export_jasc(palettes, out_dir+"/palettes",False)
 
-        tiles_second=export_indexed_image_secondary(img, full_assignment, joined_palettes, out_dir)
-        total_tiles=vconcat_indexed(tiles_prim,tiles_second)
-        total_tiles.save(os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/debug.png"))
+        export_indexed_image_secondary(img, full_assignment, joined_palettes, out_dir)
+        #total_tiles=vconcat_indexed(tiles_prim,tiles_second)
+        #total_tiles.save(os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/debug.png"))
 
         #def prepend_zeros(v, n):
         #    return [0]*n + v
@@ -100,6 +100,8 @@ def compile_secondary(path, out_dir, path_primary=None, optimal=False):
         #full_assignment_with_prim=prepend_zeros(full_assignment,len(split_into_tiles(tiles_prim)))
 
         imgprim, prim_colors_sets = load_tiles_from_imgs(decompile_tileset(path_primary,to_print=False))
+
+        #imgprim.save("Test/debug.png")
 
         #print(match_palettes_by_tiles(imgprim,tiles_prim,pals_primary))
 
