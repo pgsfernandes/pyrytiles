@@ -35,6 +35,6 @@ compile_secondary(input_dir_secondary, output_dir, input_dir_primary, optimal=Fa
 
 #decompile_tileset(primary_path="Test/EmeraldGeneral", secondary_path="Test/Pacifidlog", out_dir="Test/Pacifidlog/DecompiledEmeraldOriginal")
 #compile_primary(path="Test/EmeraldGeneral/Decompiled",out_dir="Test/EmeraldGeneral/Recompiled",optimal=False)
-#compile_secondary(path="Test/Slateport/DecompiledEmeraldOriginal",out_dir="Test/Slateport/Recompiled-New",path_primary="Test/EmeraldGeneral/Recompiled",optimal=False)
+compile_secondary(path="Test/Slateport/DecompiledEmeraldOriginal",out_dir="Test/Slateport/Recompiled",path_primary="Test/EmeraldGeneral/Recompiled",optimal=False)
 #compile_secondary(path="Test/Mauville/DecompiledEmeraldOriginal",out_dir="Test/Mauville/Recompiled",path_primary="Test/EmeraldGeneral",optimal=False)
-compile_secondary(path="Test/Pacifidlog/DecompiledEmeraldOriginal",out_dir="Test/Pacifidlog/Recompiled",path_primary="Test/EmeraldGeneral/Recompiled",optimal=True)
+#compile_secondary(path="Test/Pacifidlog/DecompiledEmeraldOriginal",out_dir="Test/Pacifidlog/Recompiled",path_primary="Test/EmeraldGeneral/Recompiled",optimal=True)

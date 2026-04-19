@@ -109,7 +109,8 @@ def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output", 
     if not primary_path and not secondary_path:
         raise ValueError("You must provide at least one tileset path.")
 
-    os.makedirs(out_dir, exist_ok=True)
+    if to_print:
+        os.makedirs(out_dir, exist_ok=True)
 
     # ==========================================
     # MODE DETECTION
