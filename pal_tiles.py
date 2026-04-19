@@ -143,3 +143,4 @@ def export_indexed_image_secondary(img, assignment, palettes, out_dir):
                 composite.putpixel((tx + x, ty + y), idx)
 
     composite.save(os.path.join(out_dir, "tiles.png"), bits=4)
+    return composite

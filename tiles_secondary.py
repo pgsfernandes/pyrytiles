@@ -195,6 +195,15 @@ def load_tiles_sec(secondary_path,primary_path):
 
     # Collect unique tiles (handles Magenta tile at index 0)
     unique_secondary_tiles = collect_unique_tiles(filtered_secondary)
+
+    # Tiles that are in the primary tileset
+    '''
+    filtered_secondary_in_primary = [
+        tile for tile in secondary_tiles_raw 
+        if canonical_tile_key(tile) in primary_canonical_keys
+    ]
+    unique_tiles_in_primary = collect_unique_tiles(filtered_secondary_in_primary)
+    '''
     
     print(f"Number of unique secondary-exclusive tiles: {len(unique_secondary_tiles)}")
 
@@ -213,11 +222,6 @@ def load_tiles_sec(secondary_path,primary_path):
         # Ensure Magenta (GBA version) is removed from the set
         colors.discard(MAGENTA)
         tile_color_sets.append(colors)
-    output_img.save(os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/debug.png"))
+    #output_img.save(os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/debug.png"))
 
     return output_img, tile_color_sets
-
-#input_dir = os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/decompiletest3")
-#input_dir_secondary = os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/decompiletestsec/output2")
-#input_dir_secondary = os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/decompiletest3/output2")
-#load_tiles_sec(input_dir_secondary,input_dir)

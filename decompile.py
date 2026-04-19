@@ -3,7 +3,7 @@ import struct
 import csv
 import glob
 from PIL import Image, ImageOps
-from config import BEHAVIOR_MAP, TILE_SIZE, METATILE_SIZE
+from config import BEHAVIOR_MAP, TILE_SIZE, METATILE_SIZE, LAYERS_HEIGHT, LAYERS_WIDTH
 
 # ==========================================
 # CONFIGURATION
@@ -162,6 +162,9 @@ def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output"):
     mt_per_row = ORIGINAL_CANVAS_WIDTH // METATILE_SIZE
     img_w = ORIGINAL_CANVAS_WIDTH
     img_h = ((num_metatiles + mt_per_row - 1) // mt_per_row) * METATILE_SIZE
+
+    img_w=LAYERS_WIDTH
+    img_h=LAYERS_HEIGHT
 
     magenta_bg = (255, 0, 255, 255)
     layers = {

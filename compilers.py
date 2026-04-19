@@ -2,7 +2,9 @@ import os
 from solver import solve
 from solver_sec import solve_secondary
 from pal_tiles import build_palettes, export_jasc, export_indexed_image, export_indexed_image_secondary
-from metatiles import build_metatiles_bin
+from metatiles import build_metatiles_bin, build_metatiles_bin_secondary
+from PIL import Image
+from utils import vconcat_indexed
 from config import MAGENTA
 
 def compile_primary(path, out_dir, optimal=False, is_primary=True):
@@ -20,6 +22,8 @@ def compile_primary(path, out_dir, optimal=False, is_primary=True):
     export_jasc(palettes, out_dir+"/palettes",is_primary)
     export_indexed_image(img, assignment, palettes, out_dir)
     build_metatiles_bin(path, img, assignment, out_dir)
+
+from tiles_dedup import split_into_tiles
 
 def compile_secondary(path, out_dir, path_primary=None, optimal=False):
     if path_primary is None:
@@ -54,7 +58,20 @@ def compile_secondary(path, out_dir, path_primary=None, optimal=False):
             joined.extend(list_palettes)
 
             return joined
+        
+        joined_palettes=join_palettes(palettes,pals_primary)
+        tiles_prim=Image.open(path_primary+"/tiles.png")
 
         export_jasc(palettes, out_dir+"/palettes",False)
-        export_indexed_image_secondary(img, full_assignment, join_palettes(palettes,pals_primary), out_dir)
-        build_metatiles_bin(path, img, full_assignment, out_dir)
+
+        tiles_second=export_indexed_image_secondary(img, full_assignment, joined_palettes, out_dir)
+        total_tiles=vconcat_indexed(tiles_prim,tiles_second)
+        total_tiles.save(os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/debug.png"))
+
+        def prepend_zeros(v, n):
+            return [0]*n + v
+
+        full_assignment_with_prim=prepend_zeros(full_assignment,len(split_into_tiles(tiles_prim)))
+
+        build_metatiles_bin_secondary(path, img, full_assignment, out_dir)
+        #build_metatiles_bin_secondary(path, total_tiles, full_assignment_with_prim, out_dir)
