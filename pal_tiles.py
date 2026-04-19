@@ -72,6 +72,17 @@ def build_pil_palette(palette):
     flat += [0] * (256 * 3 - len(flat))
     return flat
 
+def make_grayscale_palette() -> list:
+    """
+    Returns a 16-color palette with magenta as the first color,
+    followed by 15 evenly spaced grayscale colors.
+    """
+    palette = [(255, 0, 255)]
+    for i in range(15):
+        v = round(i * 255 / 14)
+        palette.append((v, v, v))
+    return palette
+
 
 def export_indexed_image(img, assignment, palettes, out_dir):
     os.makedirs(out_dir, exist_ok=True)
@@ -79,13 +90,14 @@ def export_indexed_image(img, assignment, palettes, out_dir):
     w, h = img.size
     tiles_x = w // TILE_SIZE
 
-    best_palette = max(
-        palettes,
-        key=lambda p: sum(1 for i, c in enumerate(p) if i and c != (0, 0, 0))
-    )
+    #best_palette = max(
+    #    palettes,
+    #    key=lambda p: sum(1 for i, c in enumerate(p) if i and c != (0, 0, 0))
+    #)
 
     composite = Image.new("P", (w, h))
-    composite.putpalette(build_pil_palette(best_palette))
+    #composite.putpalette(build_pil_palette(best_palette))
+    composite.putpalette(build_pil_palette(make_grayscale_palette()))
 
     for i, assigned_p in enumerate(assignment):
         palette = palettes[assigned_p]
@@ -101,17 +113,6 @@ def export_indexed_image(img, assignment, palettes, out_dir):
                 composite.putpixel((tx + x, ty + y), idx)
 
     composite.save(os.path.join(out_dir, "tiles.png"), bits=4)
-
-def make_grayscale_palette() -> list:
-    """
-    Returns a 16-color palette with magenta as the first color,
-    followed by 15 evenly spaced grayscale colors.
-    """
-    palette = [(255, 0, 255)]
-    for i in range(15):
-        v = round(i * 255 / 14)
-        palette.append((v, v, v))
-    return palette
 
 def export_indexed_image_secondary(img, assignment, palettes, out_dir):
     os.makedirs(out_dir, exist_ok=True)

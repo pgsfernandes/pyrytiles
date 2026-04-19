@@ -28,15 +28,9 @@ def compile_secondary(path, out_dir, path_primary=None, optimal=False):
         if result is None:
             return
 
-        #img, tiles, assignment, pals_primary = result
         img, tiles, assignment, full_assignment, pals_primary = result
 
-        #print(pals_primary)
-
-        img.save(os.path.join(out_dir, "debug.png"))
-
-        #print(assignment)
-        print(full_assignment)
+        #img.save(os.path.join(out_dir, "debug.png"))
 
         os.makedirs(out_dir, exist_ok=True)
         os.makedirs(out_dir+"/palettes", exist_ok=True)
@@ -60,11 +54,6 @@ def compile_secondary(path, out_dir, path_primary=None, optimal=False):
 
             return joined
 
-        #print(palettes)
-        #print(pals_primary)
-        print(join_palettes(palettes,pals_primary))
-        #assignment_new = [x + 6 for x in assignment]
-
         export_jasc(palettes, out_dir+"/palettes",False)
         export_indexed_image_secondary(img, full_assignment, join_palettes(palettes,pals_primary), out_dir)
-        #build_metatiles_bin(path, img, assignment, out_dir)
+        build_metatiles_bin(path, img, full_assignment, out_dir)

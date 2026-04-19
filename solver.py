@@ -275,7 +275,7 @@ def solve_secondary(path, path_primary, optimal):
 
     #print(report["summary"])
 
-    print("Number of tiles to matched to secondary palettes: ", len(unmatched))
+    print("Number of unique secondary tiles that cannot use primary palettes: ", len(unmatched))
 
     # Update the reference
     tiles_before=tiles

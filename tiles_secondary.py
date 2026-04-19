@@ -196,8 +196,7 @@ def load_tiles_sec(secondary_path,primary_path):
     # Collect unique tiles (handles Magenta tile at index 0)
     unique_secondary_tiles = collect_unique_tiles(filtered_secondary)
     
-    print(f"Primary variants indexed: {len(primary_canonical_keys)}")
-    print(f"New secondary tiles added: {len(unique_secondary_tiles)}")
+    print(f"Number of unique secondary-exclusive tiles: {len(unique_secondary_tiles)}")
 
     # 4. GENERATE OUTPUT
     output_img = create_output_image(unique_secondary_tiles)
