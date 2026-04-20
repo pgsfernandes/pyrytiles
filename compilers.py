@@ -8,7 +8,7 @@ from decompile import decompile_tileset
 from image_loader import load_tiles_from_imgs
 from utils import match_palettes_by_tiles, join_palettes
 
-def compile_primary(path, out_dir, optimal=False, is_primary=True):
+def compile_primary(path, out_dir, optimal=False, is_primary=True, triple_layer=False):
     result = solve(path, optimal)
     if result is None:
         return
@@ -22,7 +22,7 @@ def compile_primary(path, out_dir, optimal=False, is_primary=True):
 
     export_jasc(palettes, out_dir+"/palettes",is_primary)
     export_indexed_image(img, assignment, palettes, out_dir)
-    build_metatiles_bin(path, img, assignment, out_dir)
+    build_metatiles_bin(path, img, assignment, out_dir, triple_layer)
 
 def compile_secondary(path, out_dir, path_primary=None, optimal=False):
     if path_primary is None:

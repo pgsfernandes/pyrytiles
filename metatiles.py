@@ -58,7 +58,61 @@ def encode_layer(img, x, y, lookup, out):
 # ========================
 # METATILE BUILD
 # ========================
-def build_metatiles_bin(path, unique_img, palette_list, out_dir):
+def process_metatile_layers(bottom, middle, top, lookup, attributes_list, triple_layer=False):
+    """
+    Processes metatile images and attributes into binary data.
+    Returns a tuple of (metatile_data, attribute_data).
+    """
+    data = bytearray()
+    attr_data = bytearray()
+    metatile_index = 0
+
+    # Iterate through the tileset grid
+    for y in range(0, bottom.height, METATILE_SIZE):
+        for x in range(0, bottom.width, METATILE_SIZE):
+            
+            if triple_layer:
+                # --- TRIPLE LAYER LOGIC ---
+                # Fixed 24-byte structure: [Bottom][Middle][Top]
+                encode_layer(bottom, x, y, lookup, data)
+                encode_layer(middle, x, y, lookup, data)
+                encode_layer(top, x, y, lookup, data)
+                
+                # Layer bits are ignored/zeroed in triple layer hacks
+                layer_attr = 0 
+            else:
+                # --- ORIGINAL DUAL LAYER LOGIC ---
+                # Uses 16-byte structure with attribute bits to determine layering
+                if is_metatile_empty(bottom, x, y):
+                    layer_attr = 0x0000 
+                    encode_layer(middle, x, y, lookup, data)
+                    encode_layer(top, x, y, lookup, data)
+                elif is_metatile_empty(middle, x, y):
+                    layer_attr = 0x2000
+                    encode_layer(bottom, x, y, lookup, data)
+                    encode_layer(top, x, y, lookup, data)
+                else:
+                    layer_attr = 0x1000
+                    encode_layer(bottom, x, y, lookup, data)
+                    encode_layer(middle, x, y, lookup, data)
+
+            # --- Attribute Logic ---
+            if metatile_index < len(attributes_list):
+                behavior_name = attributes_list[metatile_index]
+            else:
+                behavior_name = "MB_NORMAL"
+            
+            behavior_id = BEHAVIOR_MAP.get(behavior_name, 0x00)
+            
+            # Combine the behavior ID with the layer metadata
+            final_attribute = behavior_id | layer_attr
+            attr_data.extend(struct.pack('<H', final_attribute))
+            
+            metatile_index += 1
+
+    return data, attr_data
+
+def build_metatiles_bin(path, unique_img, palette_list, out_dir, triple_layer=False):
     bottom = Image.open(f"{path}/bottom.png").convert("RGBA")
     middle = Image.open(f"{path}/middle.png").convert("RGBA")
     top = Image.open(f"{path}/top.png").convert("RGBA")
@@ -78,46 +132,12 @@ def build_metatiles_bin(path, unique_img, palette_list, out_dir):
                     attributes_list.append(row[1].strip())
 
     lookup = get_tile_lookup(unique_img, palette_list)
-    data = bytearray()       
-    attr_data = bytearray()  
-
-    print(f"Generating metatiles and attributes...")
-
-    metatile_index = 0
-    for y in range(0, bottom.height, METATILE_SIZE):
-        for x in range(0, bottom.width, METATILE_SIZE):
-            
-            # --- Visual Encoding & Layer Attribute Logic ---
-            if is_metatile_empty(bottom, x, y):
-                layer_attr = 0x0000 
-                encode_layer(middle, x, y, lookup, data)
-                encode_layer(top, x, y, lookup, data)
-
-            elif is_metatile_empty(middle, x, y):
-                layer_attr = 0x2000
-                encode_layer(bottom, x, y, lookup, data)
-                encode_layer(top, x, y, lookup, data)
-
-            else:
-                layer_attr = 0x1000
-                encode_layer(bottom, x, y, lookup, data)
-                encode_layer(middle, x, y, lookup, data)
-
-            # --- Attribute Binary Logic ---
-            # Correctly pull from our cleaned attributes_list
-            if metatile_index < len(attributes_list):
-                behavior_name = attributes_list[metatile_index]
-            else:
-                behavior_name = "MB_NORMAL"
-            
-            behavior_id = BEHAVIOR_MAP.get(behavior_name, 0x00)
-            
-            # Final 16-bit value: [Layer (4 bits)][Terrain (4 bits)][Behavior (8 bits)]
-            # Note: Since terrain is unused, behavior just sits in the bottom 8 bits.
-            final_attribute = behavior_id | layer_attr
-            
-            attr_data.extend(struct.pack('<H', final_attribute))
-            metatile_index += 1
+    
+    data, attr_data = process_metatile_layers(
+    bottom, middle, top, 
+    lookup, attributes_list, 
+    triple_layer=triple_layer
+)
 
     # Save visual tiles
     with open(os.path.join(out_dir, "metatiles.bin"), "wb") as f:
