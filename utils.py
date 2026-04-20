@@ -127,3 +127,106 @@ def create_tileset_library(tiles_png_path, palettes):
         library[pal_id] = rgba
 
     return library
+
+def join_palettes(list_palettes: list, dict_palettes: dict) -> list:
+    """
+    Prepends dict_palettes to list_palettes, returning a single list of lists.
+
+    :param list_palettes: list of lists of (R, G, B) tuples (e.g. from build_palettes)
+    :param dict_palettes: dict mapping int -> set of (R, G, B) tuples (e.g. from load_jasc_pals)
+    :return: list of lists of (R, G, B) tuples
+    """
+    joined = []
+
+    for pal_id in sorted(dict_palettes.keys()):
+        joined.append(list(dict_palettes[pal_id]))
+
+    joined.extend(list_palettes)
+
+    return joined
+
+def compare_tile_colors_to_palettes(tile_color_sets: list, palettes: dict) -> dict:
+    """
+    Compares each tile's color set against all palettes.
+
+    :param tile_color_sets: list of sets of (R, G, B) tuples, one per tile
+    :param palettes: dict mapping palette_id -> set/list of (R, G, B) tuples
+    :return: dict with per-tile results and a summary
+    """
+    results = []
+
+    for i, tile_colors in enumerate(tile_color_sets):
+        matching_palettes = []
+        best_palette = None
+        best_missing = None
+
+        for pal_id, pal_colors in palettes.items():
+            pal_set = set(pal_colors)
+            missing = tile_colors - pal_set
+
+            if not missing:
+                matching_palettes.append(pal_id)
+            else:
+                if best_missing is None or len(missing) < len(best_missing):
+                    best_missing = missing
+                    best_palette = pal_id
+
+        fits = len(matching_palettes) > 0
+        results.append({
+            "tile_index":         i,
+            "fits":               fits,
+            "matching_palettes":  matching_palettes,
+            "closest_palette":    best_palette if not fits else None,
+            "missing_colors":     best_missing if not fits else set(),
+        })
+
+    total = len(results)
+    fitting = sum(1 for r in results if r["fits"])
+
+    summary = {
+        "total_tiles":       total,
+        "fitting_tiles":     fitting,
+        "non_fitting_tiles": total - fitting,
+    }
+
+    return {"results": results, "summary": summary}
+
+def load_jasc_pal(pal_path: str) -> list:
+    """
+    Loads a JASC-PAL file and returns its colors as a list of (R, G, B) tuples,
+    preserving order.
+    """
+    with open(pal_path, "r") as f:
+        lines = [line.strip() for line in f.readlines()]
+
+    if lines[0] != "JASC-PAL" or lines[1] != "0100":
+        raise ValueError(f"Invalid JASC-PAL file: {pal_path}")
+
+    num_colors = int(lines[2])
+
+    colors = []
+    for line in lines[3:3 + num_colors]:
+        r, g, b = map(int, line.split())
+        colors.append((r, g, b))
+
+    return colors
+def load_jasc_pals_from_dir(pal_dir: str, max_index: int = 5) -> dict:
+    """
+    Loads JASC-PAL files from a directory, optionally filtering by index.
+    
+    :param pal_dir: path to directory containing .pal files
+    :param max_index: if set, only loads palettes with numeric index <= max_index
+    :return: dict mapping palette filename (without extension) -> set of (R, G, B) tuples
+    """
+    palettes = {}
+    for fname in sorted(os.listdir(pal_dir)):
+        if fname.endswith(".pal"):
+            pal_id = os.path.splitext(fname)[0]
+            if max_index is not None:
+                try:
+                    if int(pal_id) > max_index:
+                        continue
+                except ValueError:
+                    continue  # skip non-numeric filenames
+            palettes[int(pal_id)] = load_jasc_pal(os.path.join(pal_dir, fname))
+    return palettes

@@ -1,5 +1,4 @@
-from tiles_dedup import dedup
-from utils import to_gba
+from tiles_dedup import dedup, dedup_from_imgs
 from config import TILE_SIZE, MAGENTA
 
 # ========================
@@ -7,9 +6,8 @@ from config import TILE_SIZE, MAGENTA
 # ========================
 def load_tiles(path):
     input_paths = [f"{path}/{layer}.png" for layer in ("bottom", "middle", "top")]
-    output_path = f"{path}/unique_tiles.png"
 
-    img, _ = dedup(input_paths, output_path, False)
+    img = dedup(input_paths)
     img = img.convert("RGBA")
 
     tiles = []
@@ -28,8 +26,6 @@ def load_tiles(path):
             tiles.append(colors)
 
     return img, tiles
-
-from tiles_dedup import dedup_from_imgs
 
 def load_tiles_from_imgs(imgs):
     img, _ = dedup_from_imgs(imgs)
@@ -50,4 +46,4 @@ def load_tiles_from_imgs(imgs):
             colors.discard(MAGENTA)
             tiles.append(colors)
 
-    return img, tiles
+    return img

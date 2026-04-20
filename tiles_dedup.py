@@ -74,7 +74,7 @@ def load_and_validate(path):
 
     return img
 
-def dedup(input_paths, output_path=None, save=True, verbose=True):
+def dedup(input_paths):
     all_tiles = []
 
     for path in input_paths:
@@ -88,12 +88,7 @@ def dedup(input_paths, output_path=None, save=True, verbose=True):
 
     output_img = create_output_image(unique_tiles)
 
-    if save and output_path:
-        output_img.save(output_path)
-        if verbose:
-            print(f"Saved output to {output_path}")
-
-    return output_img, unique_tiles
+    return output_img
 
 def dedup_from_imgs(imgs):
     all_tiles = []
