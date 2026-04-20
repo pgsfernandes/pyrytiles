@@ -8,9 +8,8 @@ from config import *
 # METATILE HELPERS
 # ========================
 def is_metatile_empty(img, x, y):
-    mag = (255, 0, 255)
     pixels = img.crop((x, y, x + 16, y + 16)).convert("RGB").getdata()
-    return all(p == mag for p in pixels)
+    return all(p == MAGENTA for p in pixels)
 
 
 def get_tile_lookup(unique_img, palette_list, offset=0):
@@ -213,22 +212,16 @@ def build_metatiles_bin_secondary(path, unique_img, img_prim, palette_list, pale
                 layer_attr = 0x0000 
                 encode_layer_secondary(middle, x, y, lookup, lookup_primary, data)
                 encode_layer_secondary(top, x, y, lookup, lookup_primary, data)
-                #encode_layer(middle, x, y, lookup, data)
-                #encode_layer(top, x, y, lookup, data)
 
             elif is_metatile_empty(middle, x, y):
                 layer_attr = 0x2000
                 encode_layer_secondary(bottom, x, y, lookup, lookup_primary, data)
                 encode_layer_secondary(top, x, y, lookup, lookup_primary, data)
-                #encode_layer(bottom, x, y, lookup, data)
-                #encode_layer(top, x, y, lookup, data)
 
             else:
                 layer_attr = 0x1000
                 encode_layer_secondary(bottom, x, y, lookup, lookup_primary, data)
                 encode_layer_secondary(middle, x, y, lookup, lookup_primary, data)
-                #encode_layer(bottom, x, y, lookup, data)
-                #encode_layer(middle, x, y, lookup, data)
 
             # --- Attribute Binary Logic ---
             # Correctly pull from our cleaned attributes_list

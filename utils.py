@@ -1,9 +1,18 @@
 from PIL import Image
 import os
+import numpy as np
 
 def to_gba(color):
     r, g, b = color[:3]
     return ((r // 8) * 8, (g // 8) * 8, (b // 8) * 8)
+
+def from_gba_value(val):
+    """
+    Reverts (val // 8) * 8 by stretching the 5-bit result 
+    back to a full 8-bit 0-255 range.
+    """
+    five_bit = val // 8
+    return (five_bit * 255) // 31
 
 def color_distance(a, b):
     return sum((x - y) ** 2 for x, y in zip(a, b))
@@ -15,14 +24,6 @@ def nearest_palette_index(color, palette):
         if dist < best_dist:
             best_idx, best_dist = i, dist
     return best_idx
-
-def from_gba_value(val):
-    """
-    Reverts (val // 8) * 8 by stretching the 5-bit result 
-    back to a full 8-bit 0-255 range.
-    """
-    five_bit = val // 8
-    return (five_bit * 255) // 31
 
 def vconcat_indexed(img1, img2):
     """
@@ -40,7 +41,6 @@ def vconcat_indexed(img1, img2):
 
     #palette1 = img1.getpalette()
     #palette2 = img2.getpalette()
-
     # If palettes differ, remap img2 to img1's palette
     #if palette1 != palette2:
     #    img2 = img2.quantize(palette=img1)
@@ -57,9 +57,6 @@ def vconcat_indexed(img1, img2):
     out.paste(img2, (0, img1.height))
 
     return out
-
-import numpy as np
-from PIL import Image
 
 def match_palettes_by_tiles(original_img, indexed_img, palettes):
     # 1. Convert Original to RGB NumPy array

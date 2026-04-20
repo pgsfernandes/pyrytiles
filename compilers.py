@@ -1,7 +1,7 @@
 import os
 from solver import solve
 from solver_sec import solve_secondary
-from pal_tiles import build_palettes, export_jasc, export_indexed_image, export_indexed_image_secondary
+from pal_tiles import build_palettes, export_jasc, export_indexed_image
 from metatiles import build_metatiles_bin, build_metatiles_bin_secondary
 from PIL import Image
 from utils import vconcat_indexed
@@ -90,7 +90,8 @@ def compile_secondary(path, out_dir, path_primary=None, optimal=False):
 
         export_jasc(palettes, out_dir+"/palettes",False)
 
-        export_indexed_image_secondary(img, full_assignment, joined_palettes, out_dir)
+        #export_indexed_image_secondary(img, full_assignment, joined_palettes, out_dir)
+        export_indexed_image(img, full_assignment, joined_palettes, out_dir)
         #total_tiles=vconcat_indexed(tiles_prim,tiles_second)
         #total_tiles.save(os.path.expandvars("$HOME/Documents/pkmndecomps/pyrytiles/debug.png"))
 
