@@ -53,7 +53,7 @@ def merge_palettes(primary, secondary=None):
 # ==========================================
 # UNIFIED DECOMPILER
 # ==========================================
-def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output", to_print=True):
+def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output", to_print=True, triple_layer=False):
     if not primary_path and not secondary_path:
         raise ValueError("You must provide at least one tileset path.")
 
@@ -103,6 +103,8 @@ def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output", 
     with open(os.path.join(bin_path, "metatile_attributes.bin"), "rb") as f:
         attr_data = f.read()
 
+    bytes_per_metatile = 24 if triple_layer else 16
+
     num_metatiles = len(attr_data) // 2
     mt_per_row = LAYERS_WIDTH // METATILE_SIZE
     img_w = LAYERS_WIDTH
@@ -120,25 +122,42 @@ def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output", 
 
     for i in range(num_metatiles):
         attr_val = struct.unpack_from("<H", attr_data, i * 2)[0]
-        layer_logic = (attr_val & 0xF000)
-        behavior_id = (attr_val & 0x00FF)
+        behavior_id = (attr_val & 0x0FFF) # Use more bits for behavior in expanded engines
 
-        csv_rows.append([i, BEHAVIOR_MAP_REV.get(behavior_id, f"0x{behavior_id:02X}")])
-
-        if layer_logic == 0x0000:
-            target_layers = ["middle", "top"]
-        elif layer_logic == 0x2000:
-            target_layers = ["bottom", "top"]
-        else:
-            target_layers = ["bottom", "middle"]
+        csv_rows.append([i, BEHAVIOR_MAP_REV.get(behavior_id & 0xFF, f"0x{behavior_id:02X}")])
 
         mx = (i % mt_per_row) * METATILE_SIZE
         my = (i // mt_per_row) * METATILE_SIZE
 
-        for layer_idx, layer_name in enumerate(target_layers):
-            base_offset = (i * 8 + layer_idx * 4) * 2
+        # --- LAYER MAPPING LOGIC ---
+        if triple_layer:
+            # Every metatile has all three layers in order
+            layer_configs = [
+                ("bottom", 0), # Name, Tile Offset (0-3)
+                ("middle", 4), # Name, Tile Offset (4-7)
+                ("top",    8)  # Name, Tile Offset (8-11)
+            ]
+        else:
+            # Legacy Dual Layer Logic
+            layer_logic = (attr_val & 0xF000)
+            if layer_logic == 0x0000:
+                layer_configs = [("middle", 0), ("top", 4)]
+            elif layer_logic == 0x2000:
+                layer_configs = [("bottom", 0), ("top", 4)]
+            else:
+                layer_configs = [("bottom", 0), ("middle", 4)]
+
+        for layer_name, tile_start in layer_configs:
+            # base_offset calculation:
+            # i * bytes_per_metatile gets us to the start of the current metatile
+            # tile_start * 2 gets us to the specific layer within that metatile
+            base_offset = (i * bytes_per_metatile) + (tile_start * 2)
 
             for t in range(4):
+                # Ensure we don't read past the end of the file
+                if base_offset + (t * 2) + 1 >= len(metatile_pixel_data):
+                    continue
+
                 tile_val = struct.unpack_from("<H", metatile_pixel_data, base_offset + (t * 2))[0]
 
                 idx = tile_val & 0x3FF
@@ -167,24 +186,17 @@ def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output", 
                     source_img = primary_lib.get(pal_id)
                     tile_idx = idx
 
-                if source_img is None:
-                    continue
-
+                if source_img is None: continue
                 tiles_in_row = source_img.width // TILE_SIZE
-                tx = (tile_idx % tiles_in_row) * TILE_SIZE
-                ty = (tile_idx // tiles_in_row) * TILE_SIZE
-
+                tx, ty = (idx % tiles_in_row) * TILE_SIZE, (idx // tiles_in_row) * TILE_SIZE
+                
                 try:
                     tile_img = source_img.crop((tx, ty, tx + TILE_SIZE, ty + TILE_SIZE))
-
-                    if h_flip:
-                        tile_img = ImageOps.mirror(tile_img)
-                    if v_flip:
-                        tile_img = ImageOps.flip(tile_img)
+                    if h_flip: tile_img = ImageOps.mirror(tile_img)
+                    if v_flip: tile_img = ImageOps.flip(tile_img)
 
                     dx = (t % 2) * TILE_SIZE
                     dy = (t // 2) * TILE_SIZE
-
                     layers[layer_name].paste(tile_img, (mx + dx, my + dy), tile_img)
                 except:
                     pass

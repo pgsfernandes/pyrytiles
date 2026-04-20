@@ -24,9 +24,9 @@ def compile_primary(path, out_dir, optimal=False, is_primary=True, triple_layer=
     export_indexed_image(img, assignment, palettes, out_dir)
     build_metatiles_bin(path, img, assignment, out_dir, triple_layer)
 
-def compile_secondary(path, out_dir, path_primary=None, optimal=False):
+def compile_secondary(path, out_dir, path_primary=None, optimal=False, triple_layer=False):
     if path_primary is None:
-        compile_primary(path,out_dir,optimal,False)
+        compile_primary(path,out_dir,optimal,is_primary=False)
     else:
         result = solve_secondary(path, path_primary, optimal)
         if result is None:
@@ -44,5 +44,5 @@ def compile_secondary(path, out_dir, path_primary=None, optimal=False):
 
         export_jasc(palettes, out_dir+"/palettes",False)
         export_indexed_image(img, full_assignment, joined_palettes, out_dir)
-        img_prim = load_tiles_from_imgs(decompile_tileset(path_primary,to_print=False))
-        build_metatiles_bin_secondary(path, img, img_prim, full_assignment, match_palettes_by_tiles(img_prim,tiles_prim,pals_primary), out_dir)
+        img_prim = load_tiles_from_imgs(decompile_tileset(path_primary,to_print=False,triple_layer=triple_layer))
+        build_metatiles_bin_secondary(path, img, img_prim, full_assignment, match_palettes_by_tiles(img_prim,tiles_prim,pals_primary), out_dir, triple_layer=triple_layer)
