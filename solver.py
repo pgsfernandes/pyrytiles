@@ -57,13 +57,16 @@ def solve(path, optimal):
         status = solver.Solve(model, solution_callback)
 
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        print("No solution found")
+        print("No solution exists.")
         return None
+    
+    if status == cp_model.OPTIMAL:
+        print("Solution found and is optimal!")
+    elif status == cp_model.FEASIBLE:
+        print("Solution found!")
 
     assignment = [
         next(p for p in range(NUM_PALETTES) if solver.Value(x[t, p]))
         for t in range(n)
     ]
-
-    print("Solution found!")
     return img, tiles, assignment

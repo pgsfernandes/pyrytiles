@@ -159,15 +159,18 @@ def solve_secondary(path, path_primary, optimal):
         status = solver.Solve(model, solution_callback)
 
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        print("No solution found")
+        print("No solution exists.")
         return None
+
+    if status == cp_model.OPTIMAL:
+        print("Solution found and is optimal!")
+    elif status == cp_model.FEASIBLE:
+        print("Solution found!")
 
     assignment = [
         next(p for p in range(NUM_PALETTES) if solver.Value(x[t, p]))
         for t in range(n)
     ]
-
-    print("Solution found!")
 
     reordered_tiles, full_assignment = reorder_tiles(tiles_before, tiles, assignment, pals_primary)
     img_new = reorder_image(img, reordered_tiles,tiles_before)
