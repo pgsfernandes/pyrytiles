@@ -1,4 +1,3 @@
-import os
 from ortools.sat.python import cp_model
 from config import NUM_PALETTES, MAX_COLORS, MAX_TIME, TILE_SIZE
 from tiles_secondary import load_tiles_sec, create_output_image

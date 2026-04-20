@@ -1,18 +1,16 @@
+# Size of the layers images
+LAYERS_WIDTH=128
+LAYERS_HEIGHT=1024
+
+# Solver Settings
+MAX_TIME = 200.0
+
 # Tile Settings
 TILE_SIZE = 8
 METATILE_SIZE = 16
 NUM_PALETTES = 6
 MAX_COLORS = 15
 MAGENTA = (255, 0, 255)
-#GBA_MAGENTA = (248, 0, 248) # 5-bit rounded magenta
-NUM_PALS_PRIMARY = 6
-NUM_PALS_SECONDARY = 6
-
-LAYERS_WIDTH=128
-LAYERS_HEIGHT=1024
-
-# Solver Settings
-MAX_TIME = 200.0
 
 BEHAVIOR_MAP = {
     "MB_NORMAL": 0x00,

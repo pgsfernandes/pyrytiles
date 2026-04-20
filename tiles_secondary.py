@@ -1,13 +1,9 @@
 import os
 import glob
-from PIL import Image, ImageOps
-from config import TILE_SIZE, MAGENTA, NUM_PALS_PRIMARY
+from config import TILE_SIZE, MAGENTA, NUM_PALETTES
 import numpy as np
 from tiles_dedup import split_into_tiles, canonical_tile_key, create_output_image, load_and_validate
 from utils import create_tileset_library
-
-OUTPUT_WIDTH = 128
-OUTPUT_HEIGHT = 256
 
 def collect_unique_tiles(all_tiles):
     seen = set()
@@ -50,7 +46,7 @@ def load_palettes(path):
         try:
             pal_id = int(os.path.basename(pf).split('.')[0])
 
-            if 0 <= pal_id <= NUM_PALS_PRIMARY-1:   # ← filter here
+            if 0 <= pal_id <= NUM_PALETTES-1:   # ← filter here
                 pals[pal_id] = load_jasc_pal_as_list(pf)
 
         except ValueError:

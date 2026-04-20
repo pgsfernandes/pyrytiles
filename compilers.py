@@ -44,5 +44,5 @@ def compile_secondary(path, out_dir, path_primary=None, optimal=False):
 
         export_jasc(palettes, out_dir+"/palettes",False)
         export_indexed_image(img, full_assignment, joined_palettes, out_dir)
-        imgprim = load_tiles_from_imgs(decompile_tileset(path_primary,to_print=False))
-        build_metatiles_bin_secondary(path, img, imgprim, full_assignment, match_palettes_by_tiles(imgprim,tiles_prim,pals_primary), out_dir)
+        img_prim = load_tiles_from_imgs(decompile_tileset(path_primary,to_print=False))
+        build_metatiles_bin_secondary(path, img, img_prim, full_assignment, match_palettes_by_tiles(img_prim,tiles_prim,pals_primary), out_dir)

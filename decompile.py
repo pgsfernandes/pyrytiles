@@ -3,13 +3,12 @@ import struct
 import csv
 import glob
 from PIL import Image, ImageOps
-from config import BEHAVIOR_MAP, TILE_SIZE, METATILE_SIZE, LAYERS_HEIGHT, LAYERS_WIDTH, NUM_PALS_PRIMARY
+from config import BEHAVIOR_MAP, TILE_SIZE, METATILE_SIZE, LAYERS_HEIGHT, LAYERS_WIDTH, NUM_PALETTES
 from utils import create_tileset_library
 
 # ==========================================
 # CONFIGURATION
 # ==========================================
-ORIGINAL_CANVAS_WIDTH = 128 
 BEHAVIOR_MAP_REV = {v: k for k, v in BEHAVIOR_MAP.items()}
 SECONDARY_TILE_OFFSET = 512
 
@@ -47,7 +46,7 @@ def merge_palettes(primary, secondary=None):
 
     merged = primary.copy()
     for pal_id, pal_data in secondary.items():
-        if pal_id >= NUM_PALS_PRIMARY or pal_id not in merged:
+        if pal_id >= NUM_PALETTES or pal_id not in merged:
             merged[pal_id] = pal_data
     return merged
 
@@ -105,12 +104,10 @@ def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output", 
         attr_data = f.read()
 
     num_metatiles = len(attr_data) // 2
-    mt_per_row = ORIGINAL_CANVAS_WIDTH // METATILE_SIZE
-    img_w = ORIGINAL_CANVAS_WIDTH
-    img_h = ((num_metatiles + mt_per_row - 1) // mt_per_row) * METATILE_SIZE
-
-    img_w=LAYERS_WIDTH
-    img_h=LAYERS_HEIGHT
+    mt_per_row = LAYERS_WIDTH // METATILE_SIZE
+    img_w = LAYERS_WIDTH
+    #img_h = ((num_metatiles + mt_per_row - 1) // mt_per_row) * METATILE_SIZE
+    img_h = LAYERS_HEIGHT
 
     magenta_bg = (255, 0, 255, 255)
     layers = {
