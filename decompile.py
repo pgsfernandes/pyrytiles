@@ -3,7 +3,8 @@ import struct
 import csv
 import glob
 from PIL import Image, ImageOps
-from config import BEHAVIOR_MAP, TILE_SIZE, METATILE_SIZE, LAYERS_HEIGHT, LAYERS_WIDTH
+from config import BEHAVIOR_MAP, TILE_SIZE, METATILE_SIZE, LAYERS_HEIGHT, LAYERS_WIDTH, NUM_PALS_PRIMARY
+from utils import create_tileset_library
 
 # ==========================================
 # CONFIGURATION
@@ -46,61 +47,9 @@ def merge_palettes(primary, secondary=None):
 
     merged = primary.copy()
     for pal_id, pal_data in secondary.items():
-        if pal_id >= 6 or pal_id not in merged:
+        if pal_id >= NUM_PALS_PRIMARY or pal_id not in merged:
             merged[pal_id] = pal_data
     return merged
-
-# ==========================================
-# TILESET LIBRARY
-# ==========================================
-def create_tileset_library(tiles_png_path, palettes):
-    if not os.path.exists(tiles_png_path):
-        return {}
-
-    base_img = Image.open(tiles_png_path).convert("P")
-    library = {}
-
-    for pal_id, pal_data in palettes.items():
-        version = base_img.copy()
-        version.putpalette(pal_data)
-        rgba = version.convert("RGBA")
-
-        indices = list(base_img.getdata())
-        pixels = list(rgba.getdata())
-
-        new_pixels = [
-            (r, g, b, 0) if indices[i] == 0 else (r, g, b, a)
-            for i, (r, g, b, a) in enumerate(pixels)
-        ]
-
-        rgba.putdata(new_pixels)
-        library[pal_id] = rgba
-
-    return library
-
-def gba_to_8bit_channel(c):
-    """Convert 0–248 stepped GBA channel back to full 0–255."""
-    v = c >> 3          # back to 5-bit (0–31)
-    return (v << 3) | (v >> 2)
-
-def restore_gba_image(img):
-    """Apply GBA color expansion to an RGBA image."""
-    pixels = list(img.getdata())
-    new_pixels = []
-
-    for r, g, b, a in pixels:
-        if a == 0:
-            new_pixels.append((r, g, b, a))
-        else:
-            new_pixels.append((
-                gba_to_8bit_channel(r),
-                gba_to_8bit_channel(g),
-                gba_to_8bit_channel(b),
-                a
-            ))
-
-    img.putdata(new_pixels)
-    return img
 
 # ==========================================
 # UNIFIED DECOMPILER
@@ -118,8 +67,6 @@ def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output", 
     has_primary = primary_path is not None
     has_secondary = secondary_path is not None
 
-    #print("Loading palettes...")
-
     p_pals = load_palettes(primary_path) if has_primary else {}
     s_pals = load_palettes(secondary_path) if has_secondary else {}
 
@@ -133,8 +80,6 @@ def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output", 
     else:
         # primary only
         merged_pals = p_pals
-
-    #print("Generating tileset libraries...")
 
     primary_lib = None
     secondary_lib = None
@@ -217,7 +162,7 @@ def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output", 
                         source_img = primary_lib.get(pal_id)
                         tile_idx = idx
                 elif has_secondary:
-                    # standalone secondary → no split
+                    # standalone secondary -> no split
                     source_img = secondary_lib.get(pal_id)
                     tile_idx = idx
                 else:

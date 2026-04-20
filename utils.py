@@ -1,3 +1,6 @@
+from PIL import Image
+import os
+
 def to_gba(color):
     r, g, b = color[:3]
     return ((r // 8) * 8, (g // 8) * 8, (b // 8) * 8)
@@ -21,8 +24,6 @@ def from_gba_value(val):
     five_bit = val // 8
     return (five_bit * 255) // 31
 
-from PIL import Image
-
 def vconcat_indexed(img1, img2):
     """
     Vertically concatenate two PIL images in 'P' mode (indexed PNG).
@@ -37,8 +38,8 @@ def vconcat_indexed(img1, img2):
     img1 = img1.copy()
     img2 = img2.copy()
 
-    palette1 = img1.getpalette()
-    palette2 = img2.getpalette()
+    #palette1 = img1.getpalette()
+    #palette2 = img2.getpalette()
 
     # If palettes differ, remap img2 to img1's palette
     #if palette1 != palette2:
@@ -107,3 +108,25 @@ def match_palettes_by_tiles(original_img, indexed_img, palettes):
                 #palette_indices.append(0) 
                 
     return palette_indices
+
+def create_tileset_library(tiles_png_path, palettes):
+    if not os.path.exists(tiles_png_path):
+        return {}
+
+    base_img = Image.open(tiles_png_path)
+    library = {}
+
+    for pal_id, pal_data in palettes.items():
+        version = base_img.copy()
+        version.putpalette(pal_data)
+        rgba = version.convert("RGBA")
+        new_pixels = [
+			#(r, g, b, 255) if idx == 0 else (r, g, b, a)
+			(r, g, b, 255)
+			for idx, (r, g, b, a) in zip(base_img.getdata(), rgba.getdata())
+		]
+
+        rgba.putdata(new_pixels)
+        library[pal_id] = rgba
+
+    return library

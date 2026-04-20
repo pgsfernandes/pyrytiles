@@ -1,106 +1,25 @@
 import os
 import glob
-from PIL import Image
-
 from PIL import Image, ImageOps
-import sys
-from config import TILE_SIZE
-
+from config import TILE_SIZE, MAGENTA, NUM_PALS_PRIMARY
 import numpy as np
+from tiles_dedup import split_into_tiles, canonical_tile_key, create_output_image, load_and_validate
+from utils import create_tileset_library
 
 OUTPUT_WIDTH = 128
 OUTPUT_HEIGHT = 256
 
-def split_into_tiles(img):
-    tiles = []
-    for y in range(0, img.height, TILE_SIZE):
-        for x in range(0, img.width, TILE_SIZE):
-            tile = img.crop((x, y, x + TILE_SIZE, y + TILE_SIZE))
-            tiles.append(tile)
-    return tiles
-
-def get_tile_variants(tile):
-    return [
-        tile,
-        ImageOps.mirror(tile),  # horizontal
-        ImageOps.flip(tile),    # vertical
-        ImageOps.flip(ImageOps.mirror(tile))  # both
-    ]
-
-def canonical_tile_key(tile):
-    return min(v.tobytes() for v in get_tile_variants(tile))
-
-def create_magenta_tile():
-    # Create a solid magenta (255, 0, 255) tile
-    return Image.new("RGBA", (TILE_SIZE, TILE_SIZE), (255, 0, 255, 255))
-
 def collect_unique_tiles(all_tiles):
     seen = set()
     unique_tiles = []
-    
-    # 1. Prepare the mandatory magenta tile and its key
-    #magenta_tile = create_magenta_tile()
-    #magenta_key = canonical_tile_key(magenta_tile)
-    
-    # Pre-populate seen with the magenta key so we don't add it again later
-    #seen.add(magenta_key)
-    #unique_tiles.append(magenta_tile)
 
     for tile in all_tiles:
         key = canonical_tile_key(tile)
         if key not in seen:
             seen.add(key)
             unique_tiles.append(tile)
-        # Note: If a magenta tile was in all_tiles, 'seen.add' above 
-        # ensures it is skipped during the loop, keeping our index 0 version.
 
     return unique_tiles
-
-def create_output_image(unique_tiles):
-    tiles_per_row = OUTPUT_WIDTH // TILE_SIZE  # 16
-    tiles_per_col = OUTPUT_HEIGHT // TILE_SIZE  # 32
-    max_tiles = tiles_per_row * tiles_per_col  # 512
-
-    if len(unique_tiles) > max_tiles:
-        raise ValueError(f"Too many unique tiles: {len(unique_tiles)} (max {max_tiles})")
-
-    output_img = Image.new("RGBA", (OUTPUT_WIDTH, OUTPUT_HEIGHT))
-
-    for idx, tile in enumerate(unique_tiles):
-        x = (idx % tiles_per_row) * TILE_SIZE
-        y = (idx // tiles_per_row) * TILE_SIZE
-        output_img.paste(tile, (x, y))
-
-    return output_img
-
-def load_and_validate(path):
-    img = Image.open(path).convert("RGBA")
-
-    if img.width % TILE_SIZE != 0 or img.height % TILE_SIZE != 0:
-        raise ValueError(f"{path}: dimensions must be multiples of 8")
-
-    return img
-
-def dedup(input_paths, output_path=None, save=True, verbose=True):
-    all_tiles = []
-
-    for path in input_paths:
-        img = load_and_validate(path)
-        tiles = split_into_tiles(img)
-        all_tiles.extend(tiles)
-
-    unique_tiles = collect_unique_tiles(all_tiles)
-    
-    print(f"Unique tiles (with reflections): {len(unique_tiles)}")
-
-    output_img = create_output_image(unique_tiles)
-
-    if save and output_path:
-        output_img.save(output_path)
-        if verbose:
-            print(f"Saved output to {output_path}")
-
-    return output_img, unique_tiles
 
 def load_jasc_pal_as_list(filepath):
     colors = []
@@ -131,37 +50,12 @@ def load_palettes(path):
         try:
             pal_id = int(os.path.basename(pf).split('.')[0])
 
-            if 0 <= pal_id <= 5:   # ← filter here
+            if 0 <= pal_id <= NUM_PALS_PRIMARY-1:   # ← filter here
                 pals[pal_id] = load_jasc_pal_as_list(pf)
 
         except ValueError:
             continue
     return pals
-
-def create_tileset_library(tiles_png_path, palettes):
-    if not os.path.exists(tiles_png_path):
-        return {}
-
-    #base_img = Image.open(tiles_png_path).convert("P")
-    base_img = Image.open(tiles_png_path)
-    library = {}
-
-    for pal_id, pal_data in palettes.items():
-        version = base_img.copy()
-        version.putpalette(pal_data)
-        rgba = version.convert("RGBA")
-        new_pixels = [
-			#(r, g, b, 255) if idx == 0 else (r, g, b, a)
-			(r, g, b, 255)
-			for idx, (r, g, b, a) in zip(base_img.getdata(), rgba.getdata())
-		]
-
-        rgba.putdata(new_pixels)
-        library[pal_id] = rgba
-
-    return library
-
-from config import TILE_SIZE, MAGENTA
 
 def load_tiles_sec(secondary_path,primary_path):
     # 1. LOAD AND NORMALIZE PRIMARY DATA
@@ -186,15 +80,7 @@ def load_tiles_sec(secondary_path,primary_path):
         p = os.path.join(secondary_path, f"{name}.png")
         if os.path.exists(p):
             img = load_and_validate(p)
-            # Apply GBA color conversion to secondary layers
             secondary_tiles_raw.extend(split_into_tiles(img))
-
-    # 3. FILTER & DEDUPLICATE
-    # Now both sets are in GBA color space, so comparisons are accurate
-    #filtered_secondary = [
-    #    tile for tile in secondary_tiles_raw 
-    #    if canonical_tile_key(tile) not in primary_canonical_keys
-    #]
 
     def is_uniform(tile):
         """Returns True if all pixels in the tile are the same color."""
@@ -204,8 +90,6 @@ def load_tiles_sec(secondary_path,primary_path):
         # Check if all pixels match the top-left pixel
         # tile_data[0, 0] is the RGB value of the first pixel
         return np.all(tile_data == tile_data[0, 0])
-
-    # ... inside your function ...
 
     # 3. FILTER & DEDUPLICATE
     filtered_secondary = []
@@ -221,15 +105,6 @@ def load_tiles_sec(secondary_path,primary_path):
 
     # Collect unique tiles (handles Magenta tile at index 0)
     unique_secondary_tiles = collect_unique_tiles(filtered_secondary)
-
-    # Tiles that are in the primary tileset
-    '''
-    filtered_secondary_in_primary = [
-        tile for tile in secondary_tiles_raw 
-        if canonical_tile_key(tile) in primary_canonical_keys
-    ]
-    unique_tiles_in_primary = collect_unique_tiles(filtered_secondary_in_primary)
-    '''
     
     print(f"Number of unique secondary-exclusive tiles: {len(unique_secondary_tiles)}")
 
