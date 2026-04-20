@@ -43,20 +43,22 @@ def export_jasc(palettes, out_dir, is_primary=True):
     primary_marked_pal = [(255, 0, 255)] + [(0, 0, 0)] * 15
 
     if is_primary:
-        for i in range(12):
+        for i in range(13):
             filename = f"{i:02d}.pal"
             path = os.path.join(out_dir, filename)
 
             if 6 <= i <= 11:
                 write_pal(path, primary_marked_pal)
+            elif i==12:
+                write_pal(path, empty_pal)
             else:
                 write_pal(path, palettes[i])
     else:
-        for i in range(12):
+        for i in range(13):
             filename = f"{i:02d}.pal"
             path = os.path.join(out_dir, filename)
 
-            if 0 <= i <= 5:
+            if 0 <= i <= 5 or i==12:
                 write_pal(path, empty_pal)
             else:
                 write_pal(path, palettes[i - 6])
