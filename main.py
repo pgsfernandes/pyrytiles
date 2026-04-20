@@ -3,7 +3,6 @@ from compilers import compile_primary, compile_secondary
 from decompile import decompile_tileset
 
 # To load a directory it is sometimes more convenient to do: os.path.expandvars("$HOME/Documents/...")
-
 #decompile_tileset(primary_path="Test/EmeraldGeneral", secondary_path="Test/Pacifidlog", out_dir="Test/Pacifidlog/DecompiledEmeraldOriginal")
 
 compile_primary(path="Test/EmeraldGeneral/Decompiled",out_dir="Test/EmeraldGeneral/Recompiled",optimal=False)
