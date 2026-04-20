@@ -188,7 +188,8 @@ def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output", 
 
                 if source_img is None: continue
                 tiles_in_row = source_img.width // TILE_SIZE
-                tx, ty = (idx % tiles_in_row) * TILE_SIZE, (idx // tiles_in_row) * TILE_SIZE
+                #tx, ty = (idx % tiles_in_row) * TILE_SIZE, (idx // tiles_in_row) * TILE_SIZE
+                tx, ty = (tile_idx % tiles_in_row) * TILE_SIZE, (tile_idx // tiles_in_row) * TILE_SIZE
                 
                 try:
                     tile_img = source_img.crop((tx, ty, tx + TILE_SIZE, ty + TILE_SIZE))

@@ -155,6 +155,7 @@ def build_metatiles_bin(path, unique_img, palette_list, out_dir, triple_layer=Fa
 def encode_layer_secondary(img, x, y, secondary_lookup, primary_lookup, out, triple_layer=False):
     # Set the mask once per layer call instead of 4 times per layer
     TILE_INDEX_MASK = 0x7FF if triple_layer else 0x3FF
+    #TILE_INDEX_MASK = 0x3FF
     
     for dy in (0, 8):
         for dx in (0, 8):
