@@ -1,4 +1,4 @@
-# pyrytiles - a pokeemerald Tileset Compiler & Decompiler
+# pyrytiles - A pokeemerald Tileset Compiler & Decompiler
 
 A Python-based tool, inspired by [Porytiles](https://github.com/grunt-lucas/porytiles), for compiling and decompiling tilesets in `pokeemerald` decomp projects.
 
