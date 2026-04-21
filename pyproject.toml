@@ -9,6 +9,7 @@ description = "Python reimplementation of porytiles with CP-SAT solver"
 authors = [{ name="Pepas" }]
 readme = "README.md"
 requires-python = ">=3.9"
+license = { text = "MIT" }
 
 dependencies = [
     "Pillow",
@@ -19,4 +20,6 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/pgsfernandes/pyrytiles"
 
-license = { text = "MIT" }
+[tool.setuptools]
+# This explicitly tells setuptools what to include
+packages = ["pyrytiles"]
