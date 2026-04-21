@@ -83,13 +83,6 @@ def match_palettes_by_tiles(original_img, indexed_img, palettes):
             original_tile = original_img[y:y+8, x:x+8]
             indexed_tile = indexed_img[y:y+8, x:x+8]
             
-            # --- DEBUG CHECK ---
-            # If you still get the error, this will tell you exactly which tile is bad
-            if indexed_tile.max() >= 16:
-                # Force indices into 0-15 range to prevent crashing, 
-                # though this tile will likely fail to match.
-                indexed_tile = indexed_tile % 16 
-            
             found_match = False
             for pal_idx, colors in np_palettes.items():
                 # Apply palette

@@ -2,6 +2,7 @@ from ortools.sat.python import cp_model
 from .config import NUM_PALETTES, MAX_COLORS, MAX_TIME, TILE_SIZE
 from .tiles_secondary import load_tiles_sec, create_output_image
 from .utils import load_jasc_pals_from_dir
+from .solver import solver_aux
 
 class FirstSolutionSelector(cp_model.CpSolverSolutionCallback):
     def __init__(self):
@@ -116,61 +117,7 @@ def solve_secondary(path, path_primary, optimal):
     tiles=unmatched
     n = len(tiles)
 
-    model = cp_model.CpModel()
-
-    x = {
-        (t, p): model.NewBoolVar(f"x_{t}_{p}")
-        for t in range(n)
-        for p in range(NUM_PALETTES)
-    }
-
-    # each tile → one palette
-    for t in range(n):
-        model.Add(sum(x[t, p] for p in range(NUM_PALETTES)) == 1)
-
-    colors = sorted({c for tile in tiles for c in tile})
-
-    used = {
-        (p, c): model.NewBoolVar(f"u_{p}_{hash(c)}")
-        for p in range(NUM_PALETTES)
-        for c in colors
-    }
-
-    for p in range(NUM_PALETTES):
-        for c in colors:
-            tiles_with_c = [t for t in range(n) if c in tiles[t]]
-
-            if tiles_with_c:
-                model.AddMaxEquality(used[p, c], [x[t, p] for t in tiles_with_c])
-            else:
-                model.Add(used[p, c] == 0)
-
-        model.Add(sum(used[p, c] for c in colors) <= MAX_COLORS)
-
-    model.Minimize(sum(used.values()))
-
-    solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = MAX_TIME
-    print("Looking for a solution...")
-    if optimal:
-        status = solver.Solve(model)
-    else:
-        solution_callback = FirstSolutionSelector()
-        status = solver.Solve(model, solution_callback)
-
-    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        print("No solution exists.")
-        return None
-
-    if status == cp_model.OPTIMAL:
-        print("Solution found and is optimal!")
-    elif status == cp_model.FEASIBLE:
-        print("Solution found!")
-
-    assignment = [
-        next(p for p in range(NUM_PALETTES) if solver.Value(x[t, p]))
-        for t in range(n)
-    ]
+    assignment = solver_aux(n,tiles,optimal)
 
     reordered_tiles, full_assignment = reorder_tiles(tiles_before, tiles, assignment, pals_primary)
     img_new = reorder_image(img, reordered_tiles,tiles_before)

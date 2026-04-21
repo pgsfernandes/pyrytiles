@@ -10,10 +10,7 @@ class FirstSolutionSelector(cp_model.CpSolverSolutionCallback):
         # This is called the instant a feasible solution is found
         self.StopSearch()
 
-def solve(path, optimal):
-    img, tiles = load_tiles(path)
-    n = len(tiles)
-
+def solver_aux(n,tiles,optimal):
     model = cp_model.CpModel()
 
     x = {
@@ -69,4 +66,12 @@ def solve(path, optimal):
         next(p for p in range(NUM_PALETTES) if solver.Value(x[t, p]))
         for t in range(n)
     ]
+    return assignment
+
+def solve(path, optimal):
+    img, tiles = load_tiles(path)
+    n = len(tiles)
+
+    assignment=solver_aux(n,tiles,optimal)
+
     return img, tiles, assignment
