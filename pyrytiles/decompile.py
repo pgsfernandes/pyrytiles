@@ -3,8 +3,8 @@ import struct
 import csv
 import glob
 from PIL import Image, ImageOps
-from config import BEHAVIOR_MAP, TILE_SIZE, METATILE_SIZE, LAYERS_HEIGHT, LAYERS_WIDTH, NUM_PALETTES
-from utils import create_tileset_library
+from .config import BEHAVIOR_MAP, TILE_SIZE, METATILE_SIZE, LAYERS_HEIGHT, LAYERS_WIDTH, NUM_PALETTES
+from .utils import create_tileset_library
 
 # ==========================================
 # CONFIGURATION

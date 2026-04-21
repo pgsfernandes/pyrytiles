@@ -1,9 +1,9 @@
 import os
 import glob
-from config import TILE_SIZE, MAGENTA, NUM_PALETTES
 import numpy as np
-from tiles_dedup import split_into_tiles, canonical_tile_key, create_output_image, load_and_validate
-from utils import create_tileset_library
+from .config import TILE_SIZE, MAGENTA, NUM_PALETTES
+from .tiles_dedup import split_into_tiles, canonical_tile_key, create_output_image, load_and_validate
+from .utils import create_tileset_library
 
 def collect_unique_tiles(all_tiles):
     seen = set()

@@ -2,7 +2,7 @@ import os
 import struct
 import csv
 from PIL import Image, ImageOps
-from config import *
+from .config import *
 
 # ========================
 # METATILE HELPERS

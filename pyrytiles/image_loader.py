@@ -1,5 +1,5 @@
-from tiles_dedup import dedup, dedup_from_imgs
-from config import TILE_SIZE, MAGENTA
+from .tiles_dedup import dedup, dedup_from_imgs
+from .config import TILE_SIZE, MAGENTA
 
 # ========================
 # TILE LOADING

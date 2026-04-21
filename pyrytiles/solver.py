@@ -1,6 +1,6 @@
 from ortools.sat.python import cp_model
-from config import NUM_PALETTES, MAX_COLORS, MAX_TIME
-from image_loader import load_tiles
+from .config import NUM_PALETTES, MAX_COLORS, MAX_TIME
+from .image_loader import load_tiles
 
 class FirstSolutionSelector(cp_model.CpSolverSolutionCallback):
     def __init__(self):

@@ -1,7 +1,7 @@
 from ortools.sat.python import cp_model
-from config import NUM_PALETTES, MAX_COLORS, MAX_TIME, TILE_SIZE
-from tiles_secondary import load_tiles_sec, create_output_image
-from utils import load_jasc_pals_from_dir
+from .config import NUM_PALETTES, MAX_COLORS, MAX_TIME, TILE_SIZE
+from .tiles_secondary import load_tiles_sec, create_output_image
+from .utils import load_jasc_pals_from_dir
 
 class FirstSolutionSelector(cp_model.CpSolverSolutionCallback):
     def __init__(self):

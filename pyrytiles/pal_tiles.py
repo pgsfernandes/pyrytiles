@@ -1,8 +1,8 @@
 import os
 from PIL import Image
 from collections import defaultdict
-from utils import nearest_palette_index
-from config import *
+from .utils import nearest_palette_index
+from .config import *
 
 # ========================
 # PALETTE BUILDING

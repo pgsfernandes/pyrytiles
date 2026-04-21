@@ -1,5 +1,5 @@
 from PIL import Image, ImageOps
-from config import TILE_SIZE
+from .config import TILE_SIZE
 
 OUTPUT_WIDTH = 128
 OUTPUT_HEIGHT = 256

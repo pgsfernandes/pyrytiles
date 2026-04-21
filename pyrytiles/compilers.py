@@ -1,12 +1,12 @@
 import os
-from solver import solve
-from solver_sec import solve_secondary
-from pal_tiles import build_palettes, export_jasc, export_indexed_image
-from metatiles import build_metatiles_bin, build_metatiles_bin_secondary
 from PIL import Image
-from decompile import decompile_tileset
-from image_loader import load_tiles_from_imgs
-from utils import match_palettes_by_tiles, join_palettes
+from .solver import solve
+from .solver_sec import solve_secondary
+from .pal_tiles import build_palettes, export_jasc, export_indexed_image
+from .metatiles import build_metatiles_bin, build_metatiles_bin_secondary
+from .decompile import decompile_tileset
+from .image_loader import load_tiles_from_imgs
+from .utils import match_palettes_by_tiles, join_palettes
 
 def compile_primary(path, out_dir, optimal=False, is_primary=True, triple_layer=False):
     result = solve(path, optimal)
