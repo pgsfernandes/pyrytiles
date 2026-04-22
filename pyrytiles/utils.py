@@ -58,48 +58,6 @@ def vconcat_indexed(img1, img2):
 
     return out
 
-'''
-def match_palettes_by_tiles(original_img, indexed_img, palettes):
-    # 1. Convert Original to RGB NumPy array
-    if hasattr(original_img, "convert"):
-        original_img = np.array(original_img.convert("RGB"))
-    else:
-        original_img = np.asarray(original_img)
-
-    # 2. Convert Indexed image carefully
-    if hasattr(indexed_img, "convert"):
-        # If the image is already in 'P' (Palette) mode, this gets the raw indices.
-        # Otherwise, 'L' is used, but we must ensure values are 0-15.
-        indexed_img = np.array(indexed_img)
-    else:
-        indexed_img = np.asarray(indexed_img)
-
-    h, w, _ = original_img.shape
-    palette_indices = []
-    
-    np_palettes = {k: np.array(v, dtype=np.uint8) for k, v in palettes.items()}
-
-    for y in range(0, h, 8):
-        for x in range(0, w, 8):
-            original_tile = original_img[y:y+8, x:x+8]
-            indexed_tile = indexed_img[y:y+8, x:x+8]
-            
-            found_match = False
-            for pal_idx, colors in np_palettes.items():
-                # Apply palette
-                colored_tile = colors[indexed_tile]
-                
-                if np.array_equal(original_tile, colored_tile):
-                    palette_indices.append(pal_idx)
-                    found_match = True
-                    break
-            
-            if not found_match:
-                palette_indices.append(None) 
-                #palette_indices.append(0) 
-                
-    return palette_indices
-'''
 def match_palettes_by_tiles(original_img, indexed_img, palettes):
     # 1. Convert Original to RGB NumPy array
     if hasattr(original_img, "convert"):
@@ -122,7 +80,6 @@ def match_palettes_by_tiles(original_img, indexed_img, palettes):
             # This contains values like 0-95
             raw_indexed_tile = indexed_img[y:y+8, x:x+8]
             
-            # --- THE FIX ---
             # Convert 0-95 indices back to 0-15 indices for color matching.
             # (e.g., Index 18 becomes Index 2)
             indexed_tile_16 = raw_indexed_tile % 16

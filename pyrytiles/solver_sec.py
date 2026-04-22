@@ -125,8 +125,5 @@ def solve_secondary(path, path_primary, optimal):
     img_new = reorder_image(img, reordered_tiles,tiles_before)
 
     img_new_2, full_assignment_2, reordered_tiles_2 = process_image_shift(img_new,path,full_assignment,reordered_tiles)
-    #img_new_2.save("debug.png")
-    #print(full_assignment_2)
-    #print(full_assignment)
 
-    return img_new_2, tiles, assignment, full_assignment_2, pals_primary, reordered_tiles_2
+    return img_new_2, full_assignment_2, pals_primary, reordered_tiles_2

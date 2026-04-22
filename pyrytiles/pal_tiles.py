@@ -8,26 +8,6 @@ from .config import *
 # ========================
 # PALETTE BUILDING
 # ========================
-'''
-def build_palettes(tiles, assignment):
-    palettes = defaultdict(set)
-
-    for tile, p in zip(tiles, assignment):
-        palettes[p] |= tile
-
-    final = []
-
-    for p in range(NUM_PALETTES):
-        colors = [c for c in list(palettes[p])[:MAX_COLORS]]
-
-        palette = [MAGENTA] + colors
-        palette += [(0, 0, 0)] * (16 - len(palette))
-
-        final.append(palette)
-
-    return final
-'''
-
 def build_palettes(tiles, assignment, is_secondary=False):
     palettes = defaultdict(set)
     for tile, p in zip(tiles, assignment):
@@ -92,109 +72,10 @@ def export_jasc(palettes, out_dir, is_primary=True):
                 write_pal(path, palettes[i - 6])
 
     print("Palettes exported")
-'''
-
-# ========================
-# IMAGE EXPORT
-# ========================
-def build_pil_palette(palette):
-    flat = [v for color in palette for v in color]
-    flat += [0] * (256 * 3 - len(flat))
-    return flat
-
-def make_grayscale_palette() -> list:
-    """
-    Returns a 16-color palette with magenta as the first color,
-    followed by 15 evenly spaced grayscale colors.
-    """
-    palette = [(255, 0, 255)]
-    for i in range(15):
-        v = round(i * 255 / 14)
-        palette.append((v, v, v))
-    return palette
-
-
-def export_indexed_image(img, assignment, palettes, out_dir):
-    os.makedirs(out_dir, exist_ok=True)
-
-    w, h = img.size
-    tiles_x = w // TILE_SIZE
-
-    composite = Image.new("P", (w, h))
-    composite.putpalette(build_pil_palette(make_grayscale_palette()))
-
-    for i, assigned_p in enumerate(assignment):
-        palette = palettes[assigned_p]
-
-        tx = (i % tiles_x) * TILE_SIZE
-        ty = (i // tiles_x) * TILE_SIZE
-
-        for y in range(TILE_SIZE):
-            for x in range(TILE_SIZE):
-                raw = img.getpixel((tx + x, ty + y))
-
-                idx = 0 if raw == MAGENTA else nearest_palette_index(raw, palette)
-                composite.putpixel((tx + x, ty + y), idx)
-
-    composite.save(os.path.join(out_dir, "tiles.png"), bits=4)
-'''
 
 # ========================
 # FOR ANIMATIONS
 # ========================
-'''
-def index_image_from_master(target_img, master_indexed_img):
-    """
-    target_img: The new RGB/RGBA image you want to index.
-    master_indexed_img: The 8-bit indexed 'P' mode image (your source of truth).
-    """
-    # 1. Convert everything to numpy arrays for fast comparison
-    # We convert target to RGB to ensure we are comparing colors, not alpha/metadata
-    target_arr = np.array(target_img.convert("RGB"))
-    
-    # Master RGB is used for color matching
-    master_rgb = np.array(master_indexed_img.convert("RGB"))
-    # Master Indices contains the 0-95 values we want to steal
-    master_indices = np.array(master_indexed_img)
-
-    tw, th, _ = target_arr.shape
-    mw, mh, _ = master_rgb.shape
-
-    # 2. Extract all unique 8x8 tiles from the Master for a lookup table
-    # Key: Tile as a byte-string (for hashability), Value: The 8x8 index grid
-    tile_lookup = {}
-    for y in range(0, mw, 8):
-        for x in range(0, mh, 8):
-            rgb_tile = master_rgb[y:y+8, x:x+8]
-            idx_tile = master_indices[y:y+8, x:x+8]
-            
-            # Use tobytes() so the array can be used as a dictionary key
-            tile_key = rgb_tile.tobytes()
-            if tile_key not in tile_lookup:
-                tile_lookup[tile_key] = idx_tile
-
-    # 3. Build the new indexed image
-    new_indices = np.zeros((tw, th), dtype=np.uint8)
-
-    for y in range(0, tw, 8):
-        for x in range(0, th, 8):
-            target_tile = target_arr[y:y+8, x:x+8]
-            target_key = target_tile.tobytes()
-
-            if target_key in tile_lookup:
-                # Copy the indices (0-95) from the master
-                new_indices[y:y+8, x:x+8] = tile_lookup[target_key]
-            else:
-                # Handle tiles not found in master (default to 0/Magenta)
-                print(f"Warning: Tile at {x},{y} not found in master tileset.")
-                new_indices[y:y+8, x:x+8] = 0
-
-    # 4. Convert back to PIL Image and apply the master palette
-    result_img = Image.fromarray(new_indices, mode="P")
-    result_img.putpalette(master_indexed_img.getpalette())
-    
-    return result_img
-'''
 def index_image_from_master(target_img, master_indexed_img):
     target_arr = np.array(target_img.convert("RGB"))
     master_rgb = np.array(master_indexed_img.convert("RGB"))
@@ -276,7 +157,7 @@ def export_anims(path, output_path, tiles_img):
         indexed_ref_img.save(save_file_path)
 
 # ========================
-# UPDATED IMAGE EXPORT
+# IMAGE EXPORT
 # ========================
 
 def build_global_pil_palette(palettes):
