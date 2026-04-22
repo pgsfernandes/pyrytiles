@@ -138,31 +138,52 @@ def export_anims(path, output_path, tiles_img):
         if not os.path.isdir(folder_src_path):
             continue
 
-        # 1. Create the output directory for this specific animation folder
         folder_out_path = os.path.join(anim_out_root, folder)
         
-        # 2. Iterate through every file in the source folder
-        # We sort them to ensure frames are processed in order (00, 01, 02...)
-        found_any = False
         for filename in sorted(os.listdir(folder_src_path)):
             if not filename.lower().endswith(".png"):
                 continue
             
-            found_any = True
             src_file_path = os.path.join(folder_src_path, filename)
-            
-            # 3. Process the individual frame
-            # We convert to RGBA then index it against the master tileset
             frame_img = Image.open(src_file_path).convert("RGBA")
+            
+            # 1. Index the frame first
             indexed_frame = index_image_from_master(frame_img, tiles_img)
             
-            # 4. Save using the original filename
+            # 2. Extract tiles and flatten them into a horizontal strip
+            w, h = indexed_frame.size
+            num_tiles_x = w // TILE_SIZE
+            num_tiles_y = h // TILE_SIZE
+            total_tiles = num_tiles_x * num_tiles_y
+            
+            # Create a new blank image: Width = total tiles * 8, Height = 8
+            strip_width = total_tiles * TILE_SIZE
+            # Use mode "P" and copy the palette from the indexed frame
+            tile_strip = Image.new("P", (strip_width, TILE_SIZE))
+            tile_strip.putpalette(indexed_frame.getpalette())
+            
+            tile_count = 0
+            for row in range(num_tiles_y):
+                for col in range(num_tiles_x):
+                    # Crop the 8x8 tile from the 2D grid
+                    box = (
+                        col * TILE_SIZE, 
+                        row * TILE_SIZE, 
+                        (col + 1) * TILE_SIZE, 
+                        (row + 1) * TILE_SIZE
+                    )
+                    tile = indexed_frame.crop(box)
+                    
+                    # Paste it into the horizontal strip
+                    tile_strip.paste(tile, (tile_count * TILE_SIZE, 0))
+                    tile_count += 1
+            
+            # 3. Save the horizontal strip
             os.makedirs(folder_out_path, exist_ok=True)
             save_file_path = os.path.join(folder_out_path, filename)
-            indexed_frame.save(save_file_path)
-            
-        if not found_any:
-            continue
+            tile_strip.save(save_file_path)
+
+    #print("Animations exported.")
 
 # ========================
 # IMAGE EXPORT

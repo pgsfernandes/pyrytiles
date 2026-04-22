@@ -7,6 +7,10 @@ from .metatiles import build_metatiles_bin, build_metatiles_bin_secondary
 from .utils import join_palettes, get_palette_indices_from_indexed
 
 def compile_primary(path, out_dir, optimal=False, is_primary=True, triple_layer=False):
+
+    print()
+    print("---------------------")
+
     result = solve(path, optimal)
     if result is None:
         return
@@ -25,7 +29,13 @@ def compile_primary(path, out_dir, optimal=False, is_primary=True, triple_layer=
 
     build_metatiles_bin(path, img, assignment, out_dir, triple_layer)
 
+    print("---------------------")
+    print()
+
 def compile_secondary(path, out_dir, path_primary=None, optimal=False, triple_layer=False):
+    print()
+    print("---------------------")
+
     if path_primary is None:
         compile_primary(path,out_dir,optimal,is_primary=False)
     else:
@@ -49,3 +59,6 @@ def compile_secondary(path, out_dir, path_primary=None, optimal=False, triple_la
         export_anims(path,out_dir,indexed_tiles_img)
 
         build_metatiles_bin_secondary(path, img, tiles_prim.convert("RGBA"), full_assignment, get_palette_indices_from_indexed(tiles_prim), out_dir, triple_layer=triple_layer)
+        
+    print("---------------------")
+    print()
