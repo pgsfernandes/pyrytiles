@@ -171,18 +171,33 @@ def create_tileset_library(tiles_png_path, palettes):
     if not os.path.exists(tiles_png_path):
         return {}
 
-    base_img = Image.open(tiles_png_path)
+    base_img = Image.open(tiles_png_path).convert("P")
     library = {}
 
+    # Convert the base image indices to 0-15 range immediately
+    # This allows us to apply any 16-color palette to the shapes
+    indices = np.array(base_img)
+    normalized_indices = indices % 16
+    normalized_img = Image.fromarray(normalized_indices, mode="P")
+
     for pal_id, pal_data in palettes.items():
-        version = base_img.copy()
+        # Create a copy of the normalized (0-15) image
+        version = normalized_img.copy()
+        
+        # Apply the specific 16-color palette bank
         version.putpalette(pal_data)
+        
+        # Convert to RGBA so we can handle transparency
         rgba = version.convert("RGBA")
-        new_pixels = [
-			#(r, g, b, 255) if idx == 0 else (r, g, b, a)
-			(r, g, b, 255)
-			for idx, (r, g, b, a) in zip(base_img.getdata(), rgba.getdata())
-		]
+        
+        # transparency logic: if index was 0 (or 16, 32, etc), make it transparent
+        # In the GBA, color 0 of any palette bank is transparent
+        new_pixels = []
+        for idx, pixel in zip(indices.flatten(), rgba.getdata()):
+            if idx % 16 == 0:
+                new_pixels.append((0, 0, 0, 0)) # Fully transparent
+            else:
+                new_pixels.append(pixel)
 
         rgba.putdata(new_pixels)
         library[pal_id] = rgba
