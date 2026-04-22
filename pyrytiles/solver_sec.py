@@ -104,6 +104,8 @@ def reorder_image(img, reordered_tiles, tiles_before):
 
     return create_output_image(reordered_tile_images)
 
+from .shift_tiles_anim import process_image_shift
+
 def solve_secondary(path, path_primary, optimal):
     img, tiles = load_tiles_sec(path, path_primary)
 
@@ -122,4 +124,9 @@ def solve_secondary(path, path_primary, optimal):
     reordered_tiles, full_assignment = reorder_tiles(tiles_before, tiles, assignment, pals_primary)
     img_new = reorder_image(img, reordered_tiles,tiles_before)
 
-    return img_new, tiles, assignment, full_assignment, pals_primary
+    img_new_2, full_assignment_2, reordered_tiles_2 = process_image_shift(img_new,path,full_assignment,reordered_tiles)
+    #img_new_2.save("debug.png")
+    #print(full_assignment_2)
+    #print(full_assignment)
+
+    return img_new_2, tiles, assignment, full_assignment_2, pals_primary, reordered_tiles_2

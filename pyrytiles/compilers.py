@@ -38,18 +38,22 @@ def compile_secondary(path, out_dir, path_primary=None, optimal=False, triple_la
         if result is None:
             return
 
-        img, tiles, assignment, full_assignment, pals_primary = result
+        img, tiles, assignment, full_assignment, pals_primary, reordered_tiles = result
 
         os.makedirs(out_dir, exist_ok=True)
         os.makedirs(out_dir+"/palettes", exist_ok=True)
 
-        palettes = build_palettes(tiles, assignment)
+        #palettes = build_palettes(tiles, assignment)
+        palettes = build_palettes(reordered_tiles, full_assignment, True)
         
         joined_palettes=join_palettes(palettes,pals_primary)
         tiles_prim=Image.open(path_primary+"/tiles.png")
 
         export_jasc(palettes, out_dir+"/palettes",False)
-        export_indexed_image(img, full_assignment, joined_palettes, out_dir)
+        indexed_tiles_img = export_indexed_image(img, full_assignment, joined_palettes, out_dir)
+
+        export_anims(path,out_dir,indexed_tiles_img)
+
         #img_prim = load_tiles_from_imgs(decompile_tileset(path_primary,to_print=False,triple_layer=triple_layer))
         #img_prim = Image.open(path_primary+"/tiles.png").convert("RGBA")
         #img_prim = process_image_shift(load_tiles_from_imgs(decompile_tileset(path_primary,to_print=False,triple_layer=triple_layer)),path_primary)

@@ -8,6 +8,7 @@ from .config import *
 # ========================
 # PALETTE BUILDING
 # ========================
+'''
 def build_palettes(tiles, assignment):
     palettes = defaultdict(set)
 
@@ -17,6 +18,32 @@ def build_palettes(tiles, assignment):
     final = []
 
     for p in range(NUM_PALETTES):
+        colors = [c for c in list(palettes[p])[:MAX_COLORS]]
+
+        palette = [MAGENTA] + colors
+        palette += [(0, 0, 0)] * (16 - len(palette))
+
+        final.append(palette)
+
+    return final
+'''
+
+def build_palettes(tiles, assignment, is_secondary=False):
+    palettes = defaultdict(set)
+    for tile, p in zip(tiles, assignment):
+        # If is_secondary is True, skip entries where p < NUM_PALETTES
+        if is_secondary and p < NUM_PALETTES:
+            continue
+
+        if is_secondary:   
+            palettes[p-NUM_PALETTES] |= tile
+        else:
+            palettes[p] |= tile
+
+    final = []
+
+    for p in range(NUM_PALETTES):
+        # Note: If is_secondary is True, palettes[p] will be empty for p < NUM_PALETTES
         colors = [c for c in list(palettes[p])[:MAX_COLORS]]
 
         palette = [MAGENTA] + colors
@@ -115,7 +142,7 @@ def export_indexed_image(img, assignment, palettes, out_dir):
 # ========================
 # FOR ANIMATIONS
 # ========================
-
+'''
 def index_image_from_master(target_img, master_indexed_img):
     """
     target_img: The new RGB/RGBA image you want to index.
@@ -163,6 +190,56 @@ def index_image_from_master(target_img, master_indexed_img):
                 new_indices[y:y+8, x:x+8] = 0
 
     # 4. Convert back to PIL Image and apply the master palette
+    result_img = Image.fromarray(new_indices, mode="P")
+    result_img.putpalette(master_indexed_img.getpalette())
+    
+    return result_img
+'''
+def index_image_from_master(target_img, master_indexed_img):
+    target_arr = np.array(target_img.convert("RGB"))
+    master_rgb = np.array(master_indexed_img.convert("RGB"))
+    master_indices = np.array(master_indexed_img)
+
+    tw, th, _ = target_arr.shape
+    mw, mh, _ = master_rgb.shape
+
+    # 1. Build an expanded lookup table
+    # Key: Tile bytes, Value: The specific index grid for that orientation
+    tile_lookup = {}
+    
+    for y in range(0, mw, 8):
+        for x in range(0, mh, 8):
+            rgb_tile = master_rgb[y:y+8, x:x+8]
+            idx_tile = master_indices[y:y+8, x:x+8]
+
+            # Define the 4 transformations (Original, H-Flip, V-Flip, Both)
+            # Use axis 1 for Horizontal (X), axis 0 for Vertical (Y)
+            transforms = [
+                (rgb_tile, idx_tile), # Original
+                (np.flip(rgb_tile, axis=1), np.flip(idx_tile, axis=1)), # H-Flip
+                (np.flip(rgb_tile, axis=0), np.flip(idx_tile, axis=0)), # V-Flip
+                (np.flip(rgb_tile, axis=(0, 1)), np.flip(idx_tile, axis=(0, 1))) # Both
+            ]
+
+            for r_t, i_t in transforms:
+                key = r_t.tobytes()
+                if key not in tile_lookup:
+                    tile_lookup[key] = i_t
+
+    # 2. Build the new indexed image
+    new_indices = np.zeros((tw, th), dtype=np.uint8)
+
+    for y in range(0, tw, 8):
+        for x in range(0, th, 8):
+            target_tile = target_arr[y:y+8, x:x+8]
+            target_key = target_tile.tobytes()
+
+            if target_key in tile_lookup:
+                new_indices[y:y+8, x:x+8] = tile_lookup[target_key]
+            else:
+                print(f"Warning: Tile at {x},{y} not found (even with reflections).")
+                new_indices[y:y+8, x:x+8] = 0
+
     result_img = Image.fromarray(new_indices, mode="P")
     result_img.putpalette(master_indexed_img.getpalette())
     

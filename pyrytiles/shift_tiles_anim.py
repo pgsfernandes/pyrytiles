@@ -43,25 +43,8 @@ def reconstruct_image(tiles, rows):
     return new_img
 
 def process_image_shift(img, path_primary, *vectors):
-    """
-    img: PIL Image
-    path_primary: string path
-    *vectors: any number of lists (e.g., [0,1,2], [set(), {r,g,b}, ...])
-    """
-    # 1. Split base image and get tiles
     tiles, rows = split_into_tiles(img)
-    
-    # 2. Create local working copies of ALL vectors to avoid mutating originals
-    # This handles lists of ints, lists of sets, etc.
     working_vectors = [list(v) for v in vectors]
-
-    # Safety: Ensure vectors are long enough
-    num_tiles = len(tiles)
-    for i in range(len(working_vectors)):
-        if len(working_vectors[i]) < num_tiles:
-            # Pad with None or 0 if a vector is too short
-            padding = [None] * (num_tiles - len(working_vectors[i]))
-            working_vectors[i].extend(padding)
 
     anim_path = os.path.join(path_primary, "anim")
     if not os.path.isdir(anim_path):
@@ -82,18 +65,39 @@ def process_image_shift(img, path_primary, *vectors):
                     continue
 
                 for i in range(len(tiles)):
-                    if np.array_equal(tiles[i], ref_tile):
+                    current_tile = tiles[i]
+                    matched_flip = None
+
+                    # 1. Check all 4 orientations (Original, H, V, HV)
+                    # We store the flipped version so we can update the tiles list
+                    potential_matches = [
+                        (current_tile, "none"),
+                        (np.flip(current_tile, axis=1), "h"),
+                        (np.flip(current_tile, axis=0), "v"),
+                        (np.flip(current_tile, axis=(0, 1)), "hv")
+                    ]
+
+                    for flipped_tile, name in potential_matches:
+                        if np.array_equal(flipped_tile, ref_tile):
+                            matched_flip = flipped_tile
+                            break
+
+                    if matched_flip is not None:
                         # --- THE SYNCED MOVE ---
-                        # Move the tile array
+                        # 1. Update the tile with the correctly oriented version
+                        # (This ensures the reconstructed image matches the ref_tile exactly)
+                        tiles[i] = matched_flip
+                        
+                        # 2. Move the tile array to the front (index 1 as per your original logic)
                         target_tile = tiles.pop(i)
                         tiles.insert(1, target_tile)
                         
-                        # Move the corresponding element in EVERY vector
+                        # 3. Move the corresponding element in EVERY vector
                         for v_list in working_vectors:
                             item = v_list.pop(i)
                             v_list.insert(1, item)
                         
+                        # Break the 'i' loop once matched
                         break
 
-    # Return the image and all modified vectors unpacked
     return reconstruct_image(tiles, rows), *working_vectors
