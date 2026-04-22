@@ -2,6 +2,7 @@ import os
 import struct
 import csv
 import glob
+import shutil
 from PIL import Image, ImageOps
 from .config import BEHAVIOR_MAP, TILE_SIZE, METATILE_SIZE, LAYERS_HEIGHT, LAYERS_WIDTH, NUM_PALETTES
 from .utils import create_tileset_library
@@ -207,6 +208,28 @@ def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output", 
 
         with open(os.path.join(out_dir, "attributes.csv"), "w", newline='') as f:
             csv.writer(f).writerows(csv_rows)
+
+        anim_src_base = secondary_path if secondary_path else primary_path
+        anim_src_path = os.path.join(anim_src_base, "anim")
+        
+        if os.path.isdir(anim_src_path):
+            anim_out_path = os.path.join(out_dir, "anim")
+            
+            # Copy the entire directory structure
+            if os.path.exists(anim_out_path):
+                shutil.rmtree(anim_out_path)
+            shutil.copytree(anim_src_path, anim_out_path)
+            
+            # Process copied images to un-index (transform to RGB/RGBA)
+            for root, dirs, files in os.walk(anim_out_path):
+                for file in files:
+                    if file.lower().endswith(".png"):
+                        file_path = os.path.join(root, file)
+                        with Image.open(file_path) as anim_img:
+                            # Convert to RGBA to ensure transparency is preserved 
+                            # while stripping the palette (un-indexing)
+                            rgb_anim = anim_img.convert("RGBA")
+                            rgb_anim.save(file_path)
 
         print(f"Decompiled to {out_dir}")
     else:
