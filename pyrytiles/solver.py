@@ -1,6 +1,7 @@
 from ortools.sat.python import cp_model
 from .config import NUM_PALETTES, MAX_COLORS, MAX_TIME
 from .image_loader import load_tiles
+from .shift_tiles_anim import process_image_shift
 
 class FirstSolutionSelector(cp_model.CpSolverSolutionCallback):
     def __init__(self):
@@ -74,4 +75,13 @@ def solve(path, optimal):
 
     assignment=solver_aux(n,tiles,optimal)
 
-    return img, tiles, assignment
+    #img_new=process_image_shift(img,path)
+
+    img_new, assignment_new, tiles_new=process_image_shift(img,path,assignment, tiles)
+    
+    #img_new.save("tiles-shift.png")
+    #img.save("no-tiles-shift.png")
+    #print(len(assignment))
+
+    #return img, tiles, assignment
+    return img_new, tiles_new, assignment_new

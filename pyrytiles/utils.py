@@ -58,6 +58,7 @@ def vconcat_indexed(img1, img2):
 
     return out
 
+'''
 def match_palettes_by_tiles(original_img, indexed_img, palettes):
     # 1. Convert Original to RGB NumPy array
     if hasattr(original_img, "convert"):
@@ -96,6 +97,73 @@ def match_palettes_by_tiles(original_img, indexed_img, palettes):
             if not found_match:
                 palette_indices.append(None) 
                 #palette_indices.append(0) 
+                
+    return palette_indices
+'''
+def match_palettes_by_tiles(original_img, indexed_img, palettes):
+    # 1. Convert Original to RGB NumPy array
+    if hasattr(original_img, "convert"):
+        original_img = np.array(original_img.convert("RGB"))
+    else:
+        original_img = np.asarray(original_img)
+
+    # 2. Convert Indexed image to NumPy array
+    # If this is a 'P' mode image, np.array() gives the raw 0-255 indices
+    indexed_img = np.array(indexed_img)
+
+    h, w, _ = original_img.shape
+    palette_indices = []
+    
+    np_palettes = {k: np.array(v, dtype=np.uint8) for k, v in palettes.items()}
+
+    for y in range(0, h, 8):
+        for x in range(0, w, 8):
+            original_tile = original_img[y:y+8, x:x+8]
+            # This contains values like 0-95
+            raw_indexed_tile = indexed_img[y:y+8, x:x+8]
+            
+            # --- THE FIX ---
+            # Convert 0-95 indices back to 0-15 indices for color matching.
+            # (e.g., Index 18 becomes Index 2)
+            indexed_tile_16 = raw_indexed_tile % 16
+            
+            found_match = False
+            for pal_idx, colors in np_palettes.items():
+                # Now colors[indexed_tile_16] works because indices are 0-15
+                colored_tile = colors[indexed_tile_16]
+                
+                if np.array_equal(original_tile, colored_tile):
+                    palette_indices.append(pal_idx)
+                    found_match = True
+                    break
+            
+            if not found_match:
+                palette_indices.append(None) 
+                
+    return palette_indices
+
+def get_palette_indices_from_indexed(indexed_img):
+    """
+    Derives palette assignments directly from an 8-bit indexed image.
+    Assumes indices 0-15 = Pal 0, 16-31 = Pal 1, etc.
+    """
+    # Convert PIL image to NumPy array of raw indices
+    # (Image should be in 'P' mode)
+    indices = np.array(indexed_img)
+    
+    h, w = indices.shape
+    palette_indices = []
+
+    for y in range(0, h, 8):
+        for x in range(0, w, 8):
+            # 1. Get the index of the top-left pixel of the 8x8 tile
+            first_pixel_index = indices[y, x]
+            
+            # 2. Determine which palette bank it belongs to
+            # e.g., 58 // 16 = 3 (Palette index 3)
+            assigned_pal = int(first_pixel_index // 16)
+            
+            palette_indices.append(assigned_pal)
                 
     return palette_indices
 
