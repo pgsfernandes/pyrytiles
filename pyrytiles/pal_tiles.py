@@ -138,23 +138,31 @@ def export_anims(path, output_path, tiles_img):
         if not os.path.isdir(folder_src_path):
             continue
 
-        ref_path = os.path.join(folder_src_path, "00.png")
-        if not os.path.exists(ref_path): 
-            continue
-
-        # 1. Process image
-        ref_img = Image.open(ref_path).convert("RGBA")
-        indexed_ref_img = index_image_from_master(ref_img, tiles_img)
-        
-        # 2. Define the folder path (NOT the file path)
+        # 1. Create the output directory for this specific animation folder
         folder_out_path = os.path.join(anim_out_root, folder)
         
-        # 3. Create the directory safely
-        os.makedirs(folder_out_path, exist_ok=True)
-        
-        # 4. Save the file inside that directory
-        save_file_path = os.path.join(folder_out_path, "00.png")
-        indexed_ref_img.save(save_file_path)
+        # 2. Iterate through every file in the source folder
+        # We sort them to ensure frames are processed in order (00, 01, 02...)
+        found_any = False
+        for filename in sorted(os.listdir(folder_src_path)):
+            if not filename.lower().endswith(".png"):
+                continue
+            
+            found_any = True
+            src_file_path = os.path.join(folder_src_path, filename)
+            
+            # 3. Process the individual frame
+            # We convert to RGBA then index it against the master tileset
+            frame_img = Image.open(src_file_path).convert("RGBA")
+            indexed_frame = index_image_from_master(frame_img, tiles_img)
+            
+            # 4. Save using the original filename
+            os.makedirs(folder_out_path, exist_ok=True)
+            save_file_path = os.path.join(folder_out_path, filename)
+            indexed_frame.save(save_file_path)
+            
+        if not found_any:
+            continue
 
 # ========================
 # IMAGE EXPORT
