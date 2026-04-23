@@ -120,4 +120,4 @@ def load_tiles_sec(secondary_path,primary_path):
         colors.discard(MAGENTA)
         tile_color_sets.append(colors)
 
-    return output_img, tile_color_sets
+    return output_img, tile_color_sets, primary_library

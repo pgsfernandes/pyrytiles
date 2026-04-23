@@ -224,7 +224,7 @@ def compare_tile_colors_to_palettes(tile_color_sets: list, palettes: dict) -> di
     }
 
     return {"results": results, "summary": summary}
-
+'''
 def load_jasc_pal(pal_path: str) -> list:
     """
     Loads a JASC-PAL file and returns its colors as a list of (R, G, B) tuples,
@@ -244,6 +244,31 @@ def load_jasc_pal(pal_path: str) -> list:
         colors.append((r, g, b))
 
     return colors
+'''
+def load_jasc_pal(pal_path: str) -> list:
+    """
+    Loads a JASC-PAL file and returns its colors as a list of (R, G, B) tuples,
+    preserving order, with the first color forced to Magenta (255, 0, 255).
+    """
+    with open(pal_path, "r") as f:
+        lines = [line.strip() for line in f.readlines()]
+
+    if lines[0] != "JASC-PAL" or lines[1] != "0100":
+        raise ValueError(f"Invalid JASC-PAL file: {pal_path}")
+
+    num_colors = int(lines[2])
+
+    colors = []
+    for line in lines[3:3 + num_colors]:
+        r, g, b = map(int, line.split())
+        colors.append((r, g, b))
+
+    # --- THE CHANGE ---
+    if len(colors) > 0:
+        colors[0] = (255, 0, 255)
+
+    return colors
+
 def load_jasc_pals_from_dir(pal_dir: str, max_index: int = 5) -> dict:
     """
     Loads JASC-PAL files from a directory, optionally filtering by index.

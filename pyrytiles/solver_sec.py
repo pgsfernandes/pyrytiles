@@ -107,7 +107,7 @@ def reorder_image(img, reordered_tiles, tiles_before):
 from .shift_tiles_anim import process_image_shift
 
 def solve_secondary(path, path_primary, optimal):
-    img, tiles = load_tiles_sec(path, path_primary)
+    img, tiles, primary_library = load_tiles_sec(path, path_primary)
 
     pals_primary=load_jasc_pals_from_dir(path_primary+"/palettes")
     unmatched = find_unmatched_tiles(tiles, pals_primary)
@@ -126,4 +126,4 @@ def solve_secondary(path, path_primary, optimal):
 
     img_new_2, full_assignment_2, reordered_tiles_2 = process_image_shift(img_new,path,full_assignment,reordered_tiles)
 
-    return img_new_2, full_assignment_2, pals_primary, reordered_tiles_2
+    return img_new_2, full_assignment_2, pals_primary, reordered_tiles_2, primary_library

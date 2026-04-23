@@ -43,7 +43,7 @@ def compile_secondary(path, out_dir, path_primary=None, optimal=False, triple_la
         if result is None:
             return
 
-        img, full_assignment, pals_primary, reordered_tiles = result
+        img, full_assignment, pals_primary, reordered_tiles, primary_library = result
 
         os.makedirs(out_dir, exist_ok=True)
         os.makedirs(out_dir+"/palettes", exist_ok=True)
@@ -51,14 +51,16 @@ def compile_secondary(path, out_dir, path_primary=None, optimal=False, triple_la
         palettes = build_palettes(reordered_tiles, full_assignment, True)
         
         joined_palettes=join_palettes(palettes,pals_primary)
-        tiles_prim=Image.open(path_primary+"/tiles.png")
+        #tiles_prim=Image.open(path_primary+"/tiles.png")
 
         export_jasc(palettes, out_dir+"/palettes",False)
         indexed_tiles_img = export_indexed_image(img, full_assignment, joined_palettes, out_dir)
 
         export_anims(path,out_dir,indexed_tiles_img)
 
-        build_metatiles_bin_secondary(path, img, tiles_prim.convert("RGBA"), full_assignment, get_palette_indices_from_indexed(tiles_prim), out_dir, triple_layer=triple_layer)
-        
+        #build_metatiles_bin_secondary(path, img, tiles_prim.convert("RGBA"), full_assignment, get_palette_indices_from_indexed(tiles_prim), out_dir, triple_layer=triple_layer)
+        #build_metatiles_bin_secondary(path, img, tiles_prim, full_assignment, out_dir, triple_layer=triple_layer)
+        build_metatiles_bin_secondary(path, img, primary_library, full_assignment, out_dir, triple_layer=triple_layer)
+
     print("---------------------")
     print()

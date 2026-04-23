@@ -39,6 +39,42 @@ def get_tile_lookup(unique_img, palette_list, offset=0):
 
     return lookup
 
+def get_tile_lookup_prim(unique_img, offset=0):
+    lookup = {}
+    tiles_w = unique_img.width // TILE_SIZE
+    tiles_h = unique_img.height // TILE_SIZE
+
+    for i in range(tiles_w * tiles_h):
+        tx = (i % tiles_w) * TILE_SIZE
+        ty = (i // tiles_w) * TILE_SIZE
+
+        base = unique_img.crop((tx, ty, tx + TILE_SIZE, ty + TILE_SIZE))
+        
+        # The tile index is shifted by the offset
+        vram_index = i + offset
+
+        for h in (0, 1):
+            for v in (0, 1):
+                t = base
+                if h: t = ImageOps.mirror(t)
+                if v: t = ImageOps.flip(t)
+
+                # This key is the raw RGB pixel data tuple
+                key = tuple(t.getdata())
+                
+                # --- THE CHANGE ---
+                # Instead of using 'pal' from palette_list, we register 
+                # this specific pixel configuration for every possible palette.
+                # This way, the compiler can find this tile regardless of 
+                # which palette (0-5) the metatile is using.
+                for pal_idx in range(6):
+                    # We use a composite key (pixels, palette_id) so the 
+                    # lookup is specific to the palette bank being requested.
+                    #lookup[(key, pal_idx)] = (vram_index, pal_idx, h, v)
+                    lookup.setdefault(key, (vram_index, pal_idx, h, v))
+
+    return lookup
+
 
 def encode_layer(img, x, y, lookup, out):
     for dy in (0, 8):
@@ -218,8 +254,9 @@ def process_metatile_layers_secondary(bottom, middle, top, lookup, lookup_primar
 # ========================
 # METATILE BUILD SECONDARY
 # ========================
+from .utils import get_palette_indices_from_indexed
 
-def build_metatiles_bin_secondary(path, unique_img, img_prim, palette_list, palette_list_prim, out_dir, triple_layer=False):
+def build_metatiles_bin_secondary(path, unique_img, img_prim, palette_list, out_dir, triple_layer=False):
     bottom = Image.open(f"{path}/bottom.png").convert("RGBA")
     middle = Image.open(f"{path}/middle.png").convert("RGBA")
     top = Image.open(f"{path}/top.png").convert("RGBA")
@@ -238,7 +275,14 @@ def build_metatiles_bin_secondary(path, unique_img, img_prim, palette_list, pale
     # Secondary tiles usually start at VRAM index 512
     lookup = get_tile_lookup(unique_img, palette_list, offset=512)
     # Primary tiles start at 0
-    lookup_primary = get_tile_lookup(img_prim, palette_list_prim, offset=0)
+    #lookup_primary = get_tile_lookup(img_prim.convert("RGBA"), get_palette_indices_from_indexed(img_prim), offset=0)
+    lookup_primary = get_tile_lookup(img_prim[0].convert("RGBA"), [0] * 512, offset=0)
+    lookup_primary.update(get_tile_lookup(img_prim[1].convert("RGBA"), [1] * 512, offset=0))
+    lookup_primary.update(get_tile_lookup(img_prim[2].convert("RGBA"), [2] * 512, offset=0))
+    lookup_primary.update(get_tile_lookup(img_prim[3].convert("RGBA"), [3] * 512, offset=0))
+    lookup_primary.update(get_tile_lookup(img_prim[4].convert("RGBA"), [4] * 512, offset=0))
+    lookup_primary.update(get_tile_lookup(img_prim[5].convert("RGBA"), [5] * 512, offset=0))
+    #lookup_primary = get_tile_lookup_prim(img_prim.convert("RGBA"), offset=0)
     
     # Process layers using the new functional logic
     data, attr_data = process_metatile_layers_secondary(
