@@ -1,8 +1,9 @@
 from ortools.sat.python import cp_model
-from .config import NUM_PALETTES, MAX_COLORS, MAX_TIME, TILE_SIZE
+from .config import TILE_SIZE
 from .tiles_secondary import load_tiles_sec, create_output_image
 from .utils import load_jasc_pals_from_dir
 from .solver import solver_aux
+from .shift_tiles_anim import process_image_shift
 
 class FirstSolutionSelector(cp_model.CpSolverSolutionCallback):
     def __init__(self):
@@ -103,8 +104,6 @@ def reorder_image(img, reordered_tiles, tiles_before):
         usage[key] += 1
 
     return create_output_image(reordered_tile_images)
-
-from .shift_tiles_anim import process_image_shift
 
 def solve_secondary(path, path_primary, optimal):
     img, tiles, primary_library = load_tiles_sec(path, path_primary)
