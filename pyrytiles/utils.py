@@ -152,7 +152,8 @@ def create_tileset_library(tiles_png_path, palettes):
         new_pixels = []
         for idx, pixel in zip(indices.flatten(), rgba.getdata()):
             if idx % 16 == 0:
-                new_pixels.append((0, 0, 0, 0)) # Fully transparent
+                #new_pixels.append((0, 0, 0, 0)) # Fully transparent
+                new_pixels.append((255, 0, 255, 255)) # Fully transparent
             else:
                 new_pixels.append(pixel)
 
