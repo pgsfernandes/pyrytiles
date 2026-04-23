@@ -2,6 +2,7 @@ from ortools.sat.python import cp_model
 from .config import NUM_PALETTES, MAX_COLORS, MAX_TIME
 from .image_loader import load_tiles
 from .shift_tiles_anim import process_image_shift
+import sys
 
 class FirstSolutionSelector(cp_model.CpSolverSolutionCallback):
     def __init__(self):
@@ -56,6 +57,9 @@ def solver_aux(n,tiles,optimal):
 
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         print("No solution exists.")
+        print("---------------------")
+        print()
+        sys.exit()
         return None
     
     if status == cp_model.OPTIMAL:
