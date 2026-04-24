@@ -6,11 +6,12 @@ A Python-based tool, inspired by [Porytiles](https://github.com/grunt-lucas/pory
 
 - **Compile Primary Tilesets**: Build primary tilesets from image layers (`bottom.png`, `middle.png` and `top.png`) and a CSV with metatile attributes (`attributes.csv`).
 - **Compile Secondary Tileset**: Build secondary tilesets. Secondary tilesets can be paired with a primary tileset to efficiently reuse palettes and tiles.
+    - Optionally enable the use_primary_palette_empty_slots flag. If the tileset fails to compile on the first attempt, an algorithm will retry using available empty palette slots from the primary tileset. If this succeeds, the primary tileset's palettes will be modified accordingly.
 - **Decompile**: Convert binary `metatiles.bin` and `metatile_attributes.bin`, together with a `tiles.png` image back into editable PNG layers (`bottom.png`, `middle.png`, `top.png`) and an `attributes.csv`.
 - **Animations**: Support for animations in the same style as Porytiles.
 - **Triple-Layer Support**: Choose between dual-layer or triple-layer metatiles.
 - **CP-SAT solver**: Uses a [CP-SAT solver](https://developers.google.com/optimization/cp/cp_solver) which efficiently finds a suitable combination of palettes if mathematically possible, otherwise proves that it is not.
-- **Finding an optimal solution**: Option to find the solution that minimizes the number of palettes used. For example, with this option set to True, the primary tileset of Pokémon Emerald can be compiled with only 5 palettes (instead of 6), and a couple of unused slots in the remaining palettes.
+- **Finding an optimal solution**: Option to minimize the number of palette slots used during compilation. When enabled, the algorithm attempts to find a solution that uses as few palette slots as possible. For example, with this option set to True, the primary tileset of Pokémon Emerald can be compiled using only 5 palettes instead of 6, and leaving some palette slots unused. This is recommended for primary tilesets, as it improves the likelihood that secondary tilesets can later compile successfully when using use_primary_palette_empty_slots.
 
 Ensure you have [Python 3.x](https://www.python.org/) installed, along with all necessary libraries.
 
