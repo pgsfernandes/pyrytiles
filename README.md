@@ -7,6 +7,7 @@ A Python-based tool, inspired by [Porytiles](https://github.com/grunt-lucas/pory
 - **Compile Primary Tilesets**: Build primary tilesets from image layers (`bottom.png`, `middle.png` and `top.png`) and a CSV with metatile attributes (`attributes.csv`).
 - **Compile Secondary Tileset**: Build secondary tilesets. Secondary tilesets can be paired with a primary tileset to efficiently reuse palettes and tiles.
     - Optionally enable the use_primary_palette_empty_slots flag. If the tileset fails to compile on the first attempt, an algorithm will retry using available empty palette slots from the primary tileset. If this succeeds, the primary tileset's palettes will be modified accordingly.
+    - The paired primary tileset need *not* be compiled with pyrytiles. For example, a secondary tileset can be compiled paired with the vanilla Emerald general primary tileset.
 - **Decompile**: Convert binary `metatiles.bin` and `metatile_attributes.bin`, together with a `tiles.png` image back into editable PNG layers (`bottom.png`, `middle.png`, `top.png`) and an `attributes.csv`.
 - **Animations**: Support for animations in the same style as Porytiles.
 - **Triple-Layer Support**: Choose between dual-layer or triple-layer metatiles.
