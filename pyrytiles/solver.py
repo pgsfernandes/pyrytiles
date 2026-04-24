@@ -57,9 +57,9 @@ def solver_aux(n,tiles,optimal):
 
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         print("No solution exists.")
-        print("---------------------")
-        print()
-        sys.exit()
+        #print("---------------------")
+        #print()
+        #sys.exit()
         return None
     
     if status == cp_model.OPTIMAL:

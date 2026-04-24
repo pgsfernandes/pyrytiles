@@ -32,7 +32,7 @@ def compile_primary(path, out_dir, optimal=False, is_primary=True, triple_layer=
     print("---------------------")
     print()
 
-def compile_secondary(path, out_dir, path_primary=None, optimal=False, triple_layer=False):
+def compile_secondary(path, out_dir, path_primary=None, optimal=False, triple_layer=False, use_primary_palette_empty_slots=False):
     print()
     print("---------------------")
 
@@ -41,9 +41,20 @@ def compile_secondary(path, out_dir, path_primary=None, optimal=False, triple_la
     else:
         result = solve_secondary(path, path_primary, optimal)
         if result is None:
-            return
+            if use_primary_palette_empty_slots:
+                n=1
+                while result is None:
+                    result = solve_secondary(path, path_primary, optimal,n)
+                    n=n+1
+            else:
+                return
+        #if result is None:
+        #    return
 
         img, full_assignment, pals_primary, reordered_tiles, primary_library = result
+
+        if use_primary_palette_empty_slots:
+            export_jasc(pals_primary, path_primary+"/palettes",True)
 
         os.makedirs(out_dir, exist_ok=True)
         os.makedirs(out_dir+"/palettes", exist_ok=True)
