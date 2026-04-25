@@ -110,7 +110,7 @@ def process_metatile_layers(bottom, middle, top, lookup, attributes_list, triple
 
     return data, attr_data
 
-def build_metatiles_bin(path, unique_img, palette_list, out_dir, triple_layer=False):
+def build_metatiles_bin(path, unique_img, palette_list, out_dir, triple_layer=False, is_primary=True):
     bottom = Image.open(f"{path}/bottom.png").convert("RGBA")
     middle = Image.open(f"{path}/middle.png").convert("RGBA")
     top = Image.open(f"{path}/top.png").convert("RGBA")
@@ -129,7 +129,10 @@ def build_metatiles_bin(path, unique_img, palette_list, out_dir, triple_layer=Fa
                 if len(row) >= 2:
                     attributes_list.append(row[1].strip())
 
-    lookup = get_tile_lookup(unique_img, palette_list)
+    if is_primary:
+        lookup = get_tile_lookup(unique_img, palette_list)
+    else:
+        lookup = get_tile_lookup(unique_img, palette_list, offset=512)
     
     data, attr_data = process_metatile_layers(
     bottom, middle, top, 

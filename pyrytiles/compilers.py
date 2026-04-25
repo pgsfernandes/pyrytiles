@@ -23,11 +23,26 @@ def compile_primary(path, out_dir, optimal=False, is_primary=True, triple_layer=
     palettes = build_palettes(tiles, assignment)
 
     export_jasc(palettes, out_dir+"/palettes",is_primary)
-    indexed_tiles_img=export_indexed_image(img, assignment, palettes, out_dir)
+    if is_primary:
+        indexed_tiles_img=export_indexed_image(img, assignment, palettes, out_dir)
+    else:
+        first_color = (255, 0, 255)
+        other_colors = (0, 0, 0)
+        
+        # Create 6 palettes, each with 16 entries total
+        palettes_empty = []
+        for _ in range(6):
+            # Create a list starting with the first color followed by 15 black entries
+            palette_empty = [first_color] + [other_colors] * 15
+            palettes_empty.append(palette_empty)
+        indexed_tiles_img=export_indexed_image(img, [x+6 for x in assignment], palettes_empty + palettes, out_dir)
 
     export_anims(path,out_dir,indexed_tiles_img)
 
-    build_metatiles_bin(path, img, assignment, out_dir, triple_layer)
+    if is_primary:
+        build_metatiles_bin(path, img, assignment, out_dir, triple_layer, is_primary)
+    else:
+        build_metatiles_bin(path, img, [x+6 for x in assignment], out_dir, triple_layer, is_primary)
 
     print("---------------------")
     print()
