@@ -53,10 +53,32 @@ def encode_layer(img, x, y, lookup, out):
             out.extend(struct.pack("<H", val))
 
 
+def load_attributes_csv(path):
+    attributes_by_id = {}
+
+    if not os.path.exists(path):
+        return attributes_by_id
+
+    with open(path, "r", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if not row:
+                continue
+
+            metatile_id = row.get("id", "").strip()
+            behavior = row.get("behavior", "").strip()
+            if not metatile_id or not behavior:
+                continue
+
+            attributes_by_id[int(metatile_id, 0)] = behavior
+
+    return attributes_by_id
+
+
 # ========================
 # METATILE BUILD
 # ========================
-def process_metatile_layers(bottom, middle, top, lookup, attributes_list, triple_layer=False):
+def process_metatile_layers(bottom, middle, top, lookup, attributes_by_id, triple_layer=False):
     """
     Processes metatile images and attributes into binary data.
     Returns a tuple of (metatile_data, attribute_data).
@@ -95,10 +117,7 @@ def process_metatile_layers(bottom, middle, top, lookup, attributes_list, triple
                     encode_layer(middle, x, y, lookup, data)
 
             # --- Attribute Logic ---
-            if metatile_index < len(attributes_list):
-                behavior_name = attributes_list[metatile_index]
-            else:
-                behavior_name = "MB_NORMAL"
+            behavior_name = attributes_by_id.get(metatile_index, "MB_NORMAL")
             
             behavior_id = BEHAVIOR_MAP.get(behavior_name, 0x00)
             
@@ -115,19 +134,8 @@ def build_metatiles_bin(path, unique_img, palette_list, out_dir, triple_layer=Fa
     middle = Image.open(f"{path}/middle.png").convert("RGBA")
     top = Image.open(f"{path}/top.png").convert("RGBA")
 
-    # Load attributes from CSV
     attr_csv_path = os.path.join(path, "attributes.csv")
-    attributes_list = []
-    
-    if os.path.exists(attr_csv_path):
-        with open(attr_csv_path, "r") as f:
-            reader = csv.reader(f)
-            # Skip the header row (id,behavior)
-            next(reader, None) 
-            # Get the behavior string from the second column (row[1])
-            for row in reader:
-                if len(row) >= 2:
-                    attributes_list.append(row[1].strip())
+    attributes_by_id = load_attributes_csv(attr_csv_path)
 
     if is_primary:
         lookup = get_tile_lookup(unique_img, palette_list)
@@ -136,7 +144,7 @@ def build_metatiles_bin(path, unique_img, palette_list, out_dir, triple_layer=Fa
     
     data, attr_data = process_metatile_layers(
     bottom, middle, top, 
-    lookup, attributes_list, 
+    lookup, attributes_by_id,
     triple_layer=triple_layer
 )
 
@@ -174,7 +182,7 @@ def encode_layer_secondary(img, x, y, secondary_lookup, primary_lookup, out, tri
             val = (pal << 12) | (v << 11) | (h << 10) | (idx & TILE_INDEX_MASK)
             out.extend(struct.pack("<H", val))
 
-def process_metatile_layers_secondary(bottom, middle, top, lookup, lookup_primary, attributes_list, triple_layer=False):
+def process_metatile_layers_secondary(bottom, middle, top, lookup, lookup_primary, attributes_by_id, triple_layer=False):
     """
     Generalized logic for secondary tilesets supporting Dual and Triple layers.
     """
@@ -207,7 +215,7 @@ def process_metatile_layers_secondary(bottom, middle, top, lookup, lookup_primar
                     encode_layer_secondary(middle, x, y, lookup, lookup_primary, data)
 
             # --- Attribute Binary Logic ---
-            behavior_name = attributes_list[metatile_index] if metatile_index < len(attributes_list) else "MB_NORMAL"
+            behavior_name = attributes_by_id.get(metatile_index, "MB_NORMAL")
             behavior_id = BEHAVIOR_MAP.get(behavior_name, 0x00)
             
             final_attribute = behavior_id | layer_attr
@@ -224,15 +232,8 @@ def build_metatiles_bin_secondary(path, unique_img, img_prim, palette_list, out_
     middle = Image.open(f"{path}/middle.png").convert("RGBA")
     top = Image.open(f"{path}/top.png").convert("RGBA")
 
-    # Load attributes
     attr_csv_path = os.path.join(path, "attributes.csv")
-    attributes_list = []
-    if os.path.exists(attr_csv_path):
-        with open(attr_csv_path, "r") as f:
-            reader = csv.reader(f)
-            next(reader, None) 
-            for row in reader:
-                if len(row) >= 2: attributes_list.append(row[1].strip())
+    attributes_by_id = load_attributes_csv(attr_csv_path)
 
     # Generate lookups
     # Secondary tiles usually start at VRAM index 512
@@ -249,7 +250,7 @@ def build_metatiles_bin_secondary(path, unique_img, img_prim, palette_list, out_
     data, attr_data = process_metatile_layers_secondary(
         bottom, middle, top, 
         lookup, lookup_primary, 
-        attributes_list, 
+        attributes_by_id,
         triple_layer=triple_layer
     )
 
