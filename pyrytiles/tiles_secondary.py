@@ -1,7 +1,7 @@
 import os
 import glob
 import numpy as np
-from .config import TILE_SIZE, MAGENTA, NUM_PALETTES
+from .config import TILE_SIZE, MAGENTA, NUM_PALETTES, get_game_profile
 from .tiles_dedup import split_into_tiles, canonical_tile_key, create_output_image, load_and_validate
 from .utils import create_tileset_library
 
@@ -40,22 +40,24 @@ def load_jasc_pal_as_list(filepath):
         
     return colors[:768]
 
-def load_palettes(path):
+def load_palettes(path, palette_count=NUM_PALETTES):
     pals = {}
     for pf in glob.glob(os.path.join(path, "palettes", "*.pal")):
         try:
             pal_id = int(os.path.basename(pf).split('.')[0])
 
-            if 0 <= pal_id <= NUM_PALETTES-1:   # ← filter here
+            if 0 <= pal_id < palette_count:
                 pals[pal_id] = load_jasc_pal_as_list(pf)
 
         except ValueError:
             continue
     return pals
 
-def load_tiles_sec(secondary_path,primary_path):
+def load_tiles_sec(secondary_path, primary_path, game="emerald"):
+    profile = get_game_profile(game)
+
     # 1. LOAD AND NORMALIZE PRIMARY DATA
-    palettes = load_palettes(primary_path)
+    palettes = load_palettes(primary_path, profile["primary_palette_count"])
     tiles_png_path = os.path.join(primary_path, "tiles.png")
     
     # Create the library with recolored palettes
@@ -105,7 +107,7 @@ def load_tiles_sec(secondary_path,primary_path):
     print(f"Number of unique secondary-exclusive tiles: {len(unique_secondary_tiles)}")
 
     # 4. GENERATE OUTPUT
-    output_img = create_output_image(unique_secondary_tiles)
+    output_img = create_output_image(unique_secondary_tiles, profile["secondary_tile_count"])
     
     # Final color set list for metadata
     tile_color_sets = []

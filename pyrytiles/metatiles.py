@@ -129,7 +129,10 @@ def process_metatile_layers(bottom, middle, top, lookup, attributes_by_id, tripl
 
     return data, attr_data
 
-def build_metatiles_bin(path, unique_img, palette_list, out_dir, triple_layer=False, is_primary=True):
+def build_metatiles_bin(path, unique_img, palette_list, out_dir, triple_layer=False, is_primary=True, profile=None):
+    if profile is None:
+        profile = get_game_profile("emerald")
+
     bottom = Image.open(f"{path}/bottom.png").convert("RGBA")
     middle = Image.open(f"{path}/middle.png").convert("RGBA")
     top = Image.open(f"{path}/top.png").convert("RGBA")
@@ -140,7 +143,7 @@ def build_metatiles_bin(path, unique_img, palette_list, out_dir, triple_layer=Fa
     if is_primary:
         lookup = get_tile_lookup(unique_img, palette_list)
     else:
-        lookup = get_tile_lookup(unique_img, palette_list, offset=512)
+        lookup = get_tile_lookup(unique_img, palette_list, offset=profile["secondary_tile_offset"])
     
     data, attr_data = process_metatile_layers(
     bottom, middle, top, 
@@ -227,7 +230,10 @@ def process_metatile_layers_secondary(bottom, middle, top, lookup, lookup_primar
 # ========================
 # METATILE BUILD SECONDARY
 # ========================
-def build_metatiles_bin_secondary(path, unique_img, img_prim, palette_list, out_dir, triple_layer=False):
+def build_metatiles_bin_secondary(path, unique_img, img_prim, palette_list, out_dir, triple_layer=False, profile=None):
+    if profile is None:
+        profile = get_game_profile("emerald")
+
     bottom = Image.open(f"{path}/bottom.png").convert("RGBA")
     middle = Image.open(f"{path}/middle.png").convert("RGBA")
     top = Image.open(f"{path}/top.png").convert("RGBA")
@@ -235,16 +241,18 @@ def build_metatiles_bin_secondary(path, unique_img, img_prim, palette_list, out_
     attr_csv_path = os.path.join(path, "attributes.csv")
     attributes_by_id = load_attributes_csv(attr_csv_path)
 
-    # Generate lookups
-    # Secondary tiles usually start at VRAM index 512
-    lookup = get_tile_lookup(unique_img, palette_list, offset=512)
+    lookup = get_tile_lookup(unique_img, palette_list, offset=profile["secondary_tile_offset"])
 
-    lookup_primary = get_tile_lookup(img_prim[0].convert("RGBA"), [0] * 512, offset=0)
-    lookup_primary.update(get_tile_lookup(img_prim[1].convert("RGBA"), [1] * 512, offset=0))
-    lookup_primary.update(get_tile_lookup(img_prim[2].convert("RGBA"), [2] * 512, offset=0))
-    lookup_primary.update(get_tile_lookup(img_prim[3].convert("RGBA"), [3] * 512, offset=0))
-    lookup_primary.update(get_tile_lookup(img_prim[4].convert("RGBA"), [4] * 512, offset=0))
-    lookup_primary.update(get_tile_lookup(img_prim[5].convert("RGBA"), [5] * 512, offset=0))
+    lookup_primary = {}
+    for pal_id in range(profile["primary_palette_count"]):
+        if pal_id in img_prim:
+            lookup_primary.update(
+                get_tile_lookup(
+                    img_prim[pal_id].convert("RGBA"),
+                    [pal_id] * profile["primary_tile_count"],
+                    offset=0,
+                )
+            )
     
     # Process layers using the new functional logic
     data, attr_data = process_metatile_layers_secondary(

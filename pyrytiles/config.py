@@ -11,6 +11,39 @@ METATILE_SIZE = 16
 NUM_PALETTES = 6
 MAX_COLORS = 15
 MAGENTA = (255, 0, 255)
+TOTAL_TILE_COUNT = 1024
+TOTAL_PALETTE_COUNT = 13
+TILESET_OUTPUT_WIDTH = 128
+
+GAME_PROFILES = {
+    "emerald": {
+        "primary_tile_count": 512,
+        "secondary_tile_count": 512,
+        "primary_palette_count": 6,
+        "secondary_palette_count": 6,
+    },
+    "firered": {
+        "primary_tile_count": 640,
+        "secondary_tile_count": 384,
+        "primary_palette_count": 7,
+        "secondary_palette_count": 5,
+    },
+}
+
+
+def get_game_profile(game="emerald"):
+    key = game.lower()
+    if key not in GAME_PROFILES:
+        supported = ", ".join(sorted(GAME_PROFILES))
+        raise ValueError(f"Unsupported game '{game}'. Supported games: {supported}")
+
+    profile = GAME_PROFILES[key].copy()
+    profile["game"] = key
+    profile["secondary_tile_offset"] = profile["primary_tile_count"]
+    profile["total_tile_count"] = TOTAL_TILE_COUNT
+    profile["total_palette_count"] = TOTAL_PALETTE_COUNT
+    profile["tileset_output_width"] = TILESET_OUTPUT_WIDTH
+    return profile
 
 BEHAVIOR_MAP = {
     "MB_NORMAL": 0x00,

@@ -1,8 +1,8 @@
 from PIL import Image, ImageOps
-from .config import TILE_SIZE
+from .config import TILE_SIZE, TILESET_OUTPUT_WIDTH, get_game_profile
 
-OUTPUT_WIDTH = 128
-OUTPUT_HEIGHT = 256
+OUTPUT_WIDTH = TILESET_OUTPUT_WIDTH
+DEFAULT_MAX_TILES = get_game_profile("emerald")["primary_tile_count"]
 
 def split_into_tiles(img):
     tiles = []
@@ -49,15 +49,14 @@ def collect_unique_tiles(all_tiles):
 
     return unique_tiles
 
-def create_output_image(unique_tiles):
+def create_output_image(unique_tiles, max_tiles=DEFAULT_MAX_TILES):
     tiles_per_row = OUTPUT_WIDTH // TILE_SIZE  # 16
-    tiles_per_col = OUTPUT_HEIGHT // TILE_SIZE  # 32
-    max_tiles = tiles_per_row * tiles_per_col  # 512
+    output_height = ((max_tiles + tiles_per_row - 1) // tiles_per_row) * TILE_SIZE
 
     if len(unique_tiles) > max_tiles:
         raise ValueError(f"Too many unique tiles: {len(unique_tiles)} (max {max_tiles})")
 
-    output_img = Image.new("RGBA", (OUTPUT_WIDTH, OUTPUT_HEIGHT))
+    output_img = Image.new("RGBA", (OUTPUT_WIDTH, output_height))
 
     for idx, tile in enumerate(unique_tiles):
         x = (idx % tiles_per_row) * TILE_SIZE
@@ -74,7 +73,7 @@ def load_and_validate(path):
 
     return img
 
-def dedup(input_paths):
+def dedup(input_paths, max_tiles=DEFAULT_MAX_TILES):
     all_tiles = []
 
     for path in input_paths:
@@ -86,11 +85,11 @@ def dedup(input_paths):
     
     print(f"Unique tiles (with reflections): {len(unique_tiles)}")
 
-    output_img = create_output_image(unique_tiles)
+    output_img = create_output_image(unique_tiles, max_tiles)
 
     return output_img
 
-def dedup_from_imgs(imgs):
+def dedup_from_imgs(imgs, max_tiles=DEFAULT_MAX_TILES):
     all_tiles = []
 
     for img in imgs:
@@ -99,6 +98,6 @@ def dedup_from_imgs(imgs):
 
     unique_tiles = collect_unique_tiles(all_tiles)
 
-    output_img = create_output_image(unique_tiles)
+    output_img = create_output_image(unique_tiles, max_tiles)
 
     return output_img, unique_tiles

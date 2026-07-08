@@ -8,22 +8,26 @@ from .config import *
 # ========================
 # PALETTE BUILDING
 # ========================
-def build_palettes(tiles, assignment, is_secondary=False):
+def build_palettes(
+    tiles,
+    assignment,
+    is_secondary=False,
+    palette_count=NUM_PALETTES,
+    primary_palette_count=NUM_PALETTES,
+):
     palettes = defaultdict(set)
     for tile, p in zip(tiles, assignment):
-        # If is_secondary is True, skip entries where p < NUM_PALETTES
-        if is_secondary and p < NUM_PALETTES:
+        if is_secondary and p < primary_palette_count:
             continue
 
         if is_secondary:   
-            palettes[p-NUM_PALETTES] |= tile
+            palettes[p - primary_palette_count] |= tile
         else:
             palettes[p] |= tile
 
     final = []
 
-    for p in range(NUM_PALETTES):
-        # Note: If is_secondary is True, palettes[p] will be empty for p < NUM_PALETTES
+    for p in range(palette_count):
         colors = [c for c in list(palettes[p])[:MAX_COLORS]]
 
         palette = [MAGENTA] + colors
@@ -37,7 +41,14 @@ def build_palettes(tiles, assignment, is_secondary=False):
 # ========================
 # EXPORT PALETTE
 # ========================
-def export_jasc(palettes, out_dir, is_primary=True):
+def export_jasc(
+    palettes,
+    out_dir,
+    is_primary=True,
+    primary_palette_count=NUM_PALETTES,
+    secondary_palette_count=NUM_PALETTES,
+    total_palette_count=TOTAL_PALETTE_COUNT,
+):
     os.makedirs(out_dir, exist_ok=True)
 
     def write_pal(path, pal):
@@ -51,25 +62,25 @@ def export_jasc(palettes, out_dir, is_primary=True):
     primary_marked_pal = [(255, 0, 255)] + [(0, 0, 0)] * 15
 
     if is_primary:
-        for i in range(13):
+        for i in range(total_palette_count):
             filename = f"{i:02d}.pal"
             path = os.path.join(out_dir, filename)
 
-            if 6 <= i <= 11:
+            if primary_palette_count <= i < primary_palette_count + secondary_palette_count:
                 write_pal(path, primary_marked_pal)
-            elif i==12:
+            elif i >= primary_palette_count + secondary_palette_count:
                 write_pal(path, empty_pal)
             else:
                 write_pal(path, palettes[i])
     else:
-        for i in range(13):
+        for i in range(total_palette_count):
             filename = f"{i:02d}.pal"
             path = os.path.join(out_dir, filename)
 
-            if 0 <= i <= 5 or i==12:
+            if i < primary_palette_count or i >= primary_palette_count + secondary_palette_count:
                 write_pal(path, empty_pal)
             else:
-                write_pal(path, palettes[i - 6])
+                write_pal(path, palettes[i - primary_palette_count])
 
     print("Palettes exported")
 
@@ -192,10 +203,8 @@ def export_anims(path, output_path, tiles_img):
 def build_global_pil_palette(palettes):
     """
     Creates one large 256-color palette.
-    Palettes 0-5 are placed at indices 0, 16, 32, 48, 64, 80.
     """
     flat = []
-    # Loop through your 6 palettes
     for p in range(len(palettes)):
         for r, g, b in palettes[p]:
             flat.extend([r, g, b])
@@ -219,7 +228,6 @@ def export_indexed_image(img, assignment, palettes, out_dir):
     composite.putpalette(build_global_pil_palette(palettes))
 
     for i, assigned_p in enumerate(assignment):
-        # assigned_p is the palette index (0 through 5)
         palette = palettes[assigned_p]
         
         # Calculate the offset for this specific palette bank

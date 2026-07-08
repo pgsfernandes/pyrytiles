@@ -1,5 +1,5 @@
 from ortools.sat.python import cp_model
-from .config import TILE_SIZE
+from .config import TILE_SIZE, get_game_profile
 from .tiles_secondary import load_tiles_sec, create_output_image
 from .utils import load_jasc_pals_from_dir
 from .solver import solver_aux
@@ -173,10 +173,14 @@ def optimize_palette_slots(unmatched_tiles, palettes, max_swaps):
 
     return palettes
 
-def solve_secondary(path, path_primary, optimal, number_optimization=0):
-    img, tiles, primary_library = load_tiles_sec(path, path_primary)
+def solve_secondary(path, path_primary, optimal, number_optimization=0, game="emerald"):
+    profile = get_game_profile(game)
+    img, tiles, primary_library = load_tiles_sec(path, path_primary, game=game)
 
-    pals_primary=load_jasc_pals_from_dir(path_primary+"/palettes")
+    pals_primary=load_jasc_pals_from_dir(
+        path_primary+"/palettes",
+        max_index=profile["primary_palette_count"] - 1,
+    )
     unmatched = find_unmatched_tiles(tiles, pals_primary)
 
     if number_optimization>0:
@@ -190,7 +194,12 @@ def solve_secondary(path, path_primary, optimal, number_optimization=0):
     tiles=unmatched
     n = len(tiles)
 
-    assignment = solver_aux(n,tiles,optimal)
+    assignment = solver_aux(
+        n,
+        tiles,
+        optimal,
+        palette_count=profile["secondary_palette_count"],
+    )
     if assignment is None:
         return None
 

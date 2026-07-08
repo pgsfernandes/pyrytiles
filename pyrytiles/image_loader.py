@@ -1,13 +1,16 @@
 from .tiles_dedup import dedup, dedup_from_imgs
-from .config import TILE_SIZE, MAGENTA
+from .config import TILE_SIZE, MAGENTA, get_game_profile
 
 # ========================
 # TILE LOADING
 # ========================
-def load_tiles(path):
+def load_tiles(path, max_tiles=None):
+    if max_tiles is None:
+        max_tiles = get_game_profile("emerald")["primary_tile_count"]
+
     input_paths = [f"{path}/{layer}.png" for layer in ("bottom", "middle", "top")]
 
-    img = dedup(input_paths)
+    img = dedup(input_paths, max_tiles)
     img = img.convert("RGBA")
 
     tiles = []
@@ -27,8 +30,11 @@ def load_tiles(path):
 
     return img, tiles
 
-def load_tiles_from_imgs(imgs):
-    img, _ = dedup_from_imgs(imgs)
+def load_tiles_from_imgs(imgs, max_tiles=None):
+    if max_tiles is None:
+        max_tiles = get_game_profile("emerald")["primary_tile_count"]
+
+    img, _ = dedup_from_imgs(imgs, max_tiles)
     img = img.convert("RGBA")
 
     tiles = []

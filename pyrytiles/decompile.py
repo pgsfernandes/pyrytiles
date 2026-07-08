@@ -4,15 +4,13 @@ import csv
 import glob
 import shutil
 from PIL import Image, ImageOps
-from .config import BEHAVIOR_MAP, TILE_SIZE, METATILE_SIZE, LAYERS_HEIGHT, LAYERS_WIDTH, NUM_PALETTES
+from .config import BEHAVIOR_MAP, TILE_SIZE, METATILE_SIZE, LAYERS_HEIGHT, LAYERS_WIDTH, NUM_PALETTES, get_game_profile
 from .utils import create_tileset_library
 
 # ==========================================
 # CONFIGURATION
 # ==========================================
 BEHAVIOR_MAP_REV = {v: k for k, v in BEHAVIOR_MAP.items()}
-SECONDARY_TILE_OFFSET = 512
-
 # ==========================================
 # PALETTE HANDLING
 # ==========================================
@@ -41,20 +39,22 @@ def load_palettes(path):
             continue
     return pals
 
-def merge_palettes(primary, secondary=None):
+def merge_palettes(primary, secondary=None, primary_palette_count=NUM_PALETTES):
     if not secondary:
         return primary
 
     merged = primary.copy()
     for pal_id, pal_data in secondary.items():
-        if pal_id >= NUM_PALETTES or pal_id not in merged:
+        if pal_id >= primary_palette_count or pal_id not in merged:
             merged[pal_id] = pal_data
     return merged
 
 # ==========================================
 # UNIFIED DECOMPILER
 # ==========================================
-def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output", to_print=True, triple_layer=False):
+def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output", to_print=True, triple_layer=False, game="emerald"):
+    profile = get_game_profile(game)
+
     if not primary_path and not secondary_path:
         raise ValueError("You must provide at least one tileset path.")
 
@@ -73,7 +73,11 @@ def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output", 
     # Palette logic depends on mode
     if has_primary and has_secondary:
         # true secondary mode (engine accurate)
-        merged_pals = merge_palettes(p_pals, s_pals)
+        merged_pals = merge_palettes(
+            p_pals,
+            s_pals,
+            primary_palette_count=profile["primary_palette_count"],
+        )
     elif has_secondary:
         # standalone secondary → just use its palettes
         merged_pals = s_pals
@@ -172,16 +176,18 @@ def decompile_tileset(primary_path=None, secondary_path=None, out_dir="output", 
 
                 if has_primary and has_secondary:
                     # true engine behavior
-                    if idx >= SECONDARY_TILE_OFFSET:
+                    if idx >= profile["secondary_tile_offset"]:
                         source_img = secondary_lib.get(pal_id)
-                        tile_idx = idx - SECONDARY_TILE_OFFSET
+                        tile_idx = idx - profile["secondary_tile_offset"]
                     else:
                         source_img = primary_lib.get(pal_id)
                         tile_idx = idx
                 elif has_secondary:
-                    # standalone secondary -> no split
                     source_img = secondary_lib.get(pal_id)
-                    tile_idx = idx
+                    if idx >= profile["secondary_tile_offset"]:
+                        tile_idx = idx - profile["secondary_tile_offset"]
+                    else:
+                        tile_idx = idx
                 else:
                     # primary only
                     source_img = primary_lib.get(pal_id)

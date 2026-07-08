@@ -1,5 +1,5 @@
 from ortools.sat.python import cp_model
-from .config import NUM_PALETTES, MAX_COLORS, MAX_TIME
+from .config import NUM_PALETTES, MAX_COLORS, MAX_TIME, get_game_profile
 from .image_loader import load_tiles
 from .shift_tiles_anim import process_image_shift
 import sys
@@ -12,28 +12,28 @@ class FirstSolutionSelector(cp_model.CpSolverSolutionCallback):
         # This is called the instant a feasible solution is found
         self.StopSearch()
 
-def solver_aux(n,tiles,optimal):
+def solver_aux(n, tiles, optimal, palette_count=NUM_PALETTES):
     model = cp_model.CpModel()
 
     x = {
         (t, p): model.NewBoolVar(f"x_{t}_{p}")
         for t in range(n)
-        for p in range(NUM_PALETTES)
+        for p in range(palette_count)
     }
 
     # each tile → one palette
     for t in range(n):
-        model.Add(sum(x[t, p] for p in range(NUM_PALETTES)) == 1)
+        model.Add(sum(x[t, p] for p in range(palette_count)) == 1)
 
     colors = sorted({c for tile in tiles for c in tile})
 
     used = {
         (p, c): model.NewBoolVar(f"u_{p}_{hash(c)}")
-        for p in range(NUM_PALETTES)
+        for p in range(palette_count)
         for c in colors
     }
 
-    for p in range(NUM_PALETTES):
+    for p in range(palette_count):
         for c in colors:
             tiles_with_c = [t for t in range(n) if c in tiles[t]]
 
@@ -68,16 +68,20 @@ def solver_aux(n,tiles,optimal):
         print("Solution found!")
 
     assignment = [
-        next(p for p in range(NUM_PALETTES) if solver.Value(x[t, p]))
+        next(p for p in range(palette_count) if solver.Value(x[t, p]))
         for t in range(n)
     ]
     return assignment
 
-def solve(path, optimal):
-    img, tiles = load_tiles(path)
+def solve(path, optimal, game="emerald", is_primary=True):
+    profile = get_game_profile(game)
+    max_tiles = profile["primary_tile_count"] if is_primary else profile["secondary_tile_count"]
+    palette_count = profile["primary_palette_count"] if is_primary else profile["secondary_palette_count"]
+
+    img, tiles = load_tiles(path, max_tiles=max_tiles)
     n = len(tiles)
 
-    assignment=solver_aux(n,tiles,optimal)
+    assignment=solver_aux(n, tiles, optimal, palette_count=palette_count)
 
     img_new, assignment_new, tiles_new=process_image_shift(img,path,assignment, tiles)
     
